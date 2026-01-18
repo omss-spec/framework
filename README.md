@@ -114,7 +114,7 @@ curl http://localhost:3000/v1/health
 interface OMSSConfig {
     // Required: Server identification
     name: string; // Your server name
-    version: string; // Your server version
+    version: string; // OMSS Spec version
 
     // Optional: Network settings
     host?: string; // Default: 'localhost'
@@ -132,7 +132,7 @@ interface OMSSConfig {
         };
     };
 
-    // Optional: TMDB configuration
+    // Required: TMDB configuration
     tmdb?: {
         apiKey?: string; // Can also use TMDB_API_KEY env var
         cacheTTL?: number; // Default: 86400 (24 hours)
@@ -153,6 +153,10 @@ const server = new OMSSServer({
     cache: {
         type: 'memory',
         ttl: 3600,
+    },
+    tmdb: {
+        apiKey: process.env.TMDB_API_KEY!,
+        cacheTTL: 86400,
     },
 });
 ```
@@ -199,12 +203,39 @@ const server = new OMSSServer({
             port: 6379,
         },
     },
+    tmdb: {
+        apiKey: process.env.TMDB_API_KEY!,
+        cacheTTL: 86400,
+    },
 });
 ```
 
 ## 🔌 Creating Custom Providers
 
 See the detailed [Provider Creation Guide](./examples/example-provider.ts) for a complete walkthrough.
+
+### Quick Start with Auto-Discovery
+
+The easiest way to add a new provider:
+
+1. Create a directory for all of your provider files
+
+    ```bash
+    touch src/providers/implementations/my-provider.ts
+    ```
+
+2. Implement the `BaseProvider` class (see example below) in each file.
+
+3. In the Setup, use the `discoverProviders` method of the `ProviderRegistry` to load all providers from that directory:
+
+    ```typescript
+    const registry = server.getRegistry();
+    registry.discoverProviders('./src/providers/implementations'); // relative to where you start the server from
+    ```
+
+4. That's it! The provider will be automatically discovered and registered when you start the server!
+
+No imports, no manual registration needed!
 
 ### Minimal Provider Example
 
@@ -236,7 +267,7 @@ export class MyProvider extends BaseProvider {
 
         try {
             // Your scraping logic here
-            const streamUrl = await this.scrapeMovieUrl(media.tmdbId);
+            const streamUrl = await this.scrapeMovieUrl(media.tmdbId); // this is just some example function
 
             return {
                 sources: [
@@ -295,10 +326,9 @@ export class MyProvider extends BaseProvider {
 }
 ```
 
-### Registering Your Provider
+### Full Provider Example
 
-````typescript
-
+See the detailed [Provider Creation Guide](./examples/example-provider.ts) for a complete walkthrough.
 
 ## 📡 API Endpoints
 
@@ -324,7 +354,7 @@ Fetch streaming sources for a movie.
             "audioTracks": [
                 {
                     "language": "en",
-                    "label": "English",
+                    "label": "English"
                 }
             ],
             "provider": {
@@ -336,7 +366,7 @@ Fetch streaming sources for a movie.
     "subtitles": [],
     "diagnostics": []
 }
-````
+```
 
 ### GET `/v1/tv/:tmdbId/seasons/:season/episodes/:episode`
 
