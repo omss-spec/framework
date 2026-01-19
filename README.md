@@ -79,7 +79,7 @@ const server = new OMSSServer({
         ttl: 7200,
     },
     tmdb: {
-        apiKey: process.env.TMDB_API_KEY!,
+        apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
 });
@@ -158,7 +158,7 @@ const server = new OMSSServer({
         ttl: 3600,
     },
     tmdb: {
-        apiKey: process.env.TMDB_API_KEY!,
+        apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
 });
@@ -183,7 +183,7 @@ const server = new OMSSServer({
         },
     },
     tmdb: {
-        apiKey: process.env.TMDB_API_KEY!,
+        apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
 });
@@ -207,7 +207,7 @@ const server = new OMSSServer({
         },
     },
     tmdb: {
-        apiKey: process.env.TMDB_API_KEY!,
+        apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
 });
