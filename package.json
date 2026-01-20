@@ -1,7 +1,7 @@
 {
     "name": "@omss/framework",
     "version": "1.1.1",
-    "description": "Official OMSS backend framework - Multi-provider streaming media aggregation with auto-discovery",
+    "description": "Official OMSS backend framework - Multi-provider streaming media aggregation framework with auto-discovery",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
@@ -29,10 +29,9 @@
         "build": "npm run clean && tsc && tsc-alias",
         "dev": "tsx watch examples/basic-server.ts",
         "start": "node dist/examples/basic-server.js",
-        "clean": "rimraf dist",
+        "clean": "npx rimraf dist",
         "prepublishOnly": "npm run build",
         "test": "jest",
-        "lint": "eslint src/**/*.ts",
         "format": "prettier --write \"src/**/*.ts\""
     },
     "keywords": [
@@ -74,16 +73,9 @@
     },
     "devDependencies": {
         "@types/ioredis": "^4.28.10",
-        "@types/jest": "^30.0.0",
         "@types/node": "^20.0.0",
         "@types/uuid": "^10.0.0",
-        "@typescript-eslint/eslint-plugin": "^8.53.0",
-        "@typescript-eslint/parser": "^8.53.0",
-        "eslint": "^9.39.2",
-        "jest": "^30.2.0",
         "prettier": "^3.8.0",
-        "rimraf": "^6.1.2",
-        "ts-jest": "^29.4.6",
         "tsc-alias": "^1.8.16",
         "tsx": "^4.21.0",
         "typescript": "^5.3.0"

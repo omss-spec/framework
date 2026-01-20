@@ -1,5 +1,5 @@
-import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
-import { OMSSError } from '../core/errors';
+import { FastifyError, FastifyRequest, FastifyReply } from 'fastify'
+import { OMSSError } from '../core/errors'
 
 export async function errorHandler(error: FastifyError | OMSSError, request: FastifyRequest, reply: FastifyReply) {
     // Log error for debugging
@@ -8,11 +8,11 @@ export async function errorHandler(error: FastifyError | OMSSError, request: Fas
         method: request.method,
         error: error.message,
         stack: error.stack,
-    });
+    })
 
     // Handle OMSS-specific errors
     if (error instanceof OMSSError) {
-        return reply.code(error.statusCode).send(error.toJSON());
+        return reply.code(error.statusCode).send(error.toJSON())
     }
 
     // Handle Fastify validation errors
@@ -24,7 +24,7 @@ export async function errorHandler(error: FastifyError | OMSSError, request: Fas
                 details: error.validation,
             },
             traceId: request.id,
-        });
+        })
     }
 
     // Handle 404 errors
@@ -39,11 +39,11 @@ export async function errorHandler(error: FastifyError | OMSSError, request: Fas
                 },
             },
             traceId: request.id,
-        });
+        })
     }
 
     // Handle generic errors
-    const statusCode = error.statusCode || 500;
+    const statusCode = error.statusCode || 500
     return reply.code(statusCode).send({
         error: {
             code: 'INTERNAL_ERROR',
@@ -56,5 +56,5 @@ export async function errorHandler(error: FastifyError | OMSSError, request: Fas
                       },
         },
         traceId: request.id,
-    });
+    })
 }

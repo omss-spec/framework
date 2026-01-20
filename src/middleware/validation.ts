@@ -1,13 +1,13 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { OMSSErrors } from '../core/errors';
-import { TMDBService } from '../services/tmdb.service';
+import { FastifyRequest, FastifyReply } from 'fastify'
+import { OMSSErrors } from '../core/errors'
+import { TMDBService } from '../services/tmdb.service'
 
 /**
  * Basic TMDB ID format validation
  */
 export function validateTmdbIdFormat(id: string): void {
     if (!/^\d{1,20}$/.test(id)) {
-        throw OMSSErrors.invalidTmdbId(id);
+        throw OMSSErrors.invalidTmdbId(id)
     }
 }
 
@@ -16,7 +16,7 @@ export function validateTmdbIdFormat(id: string): void {
  */
 export function validateSeasonFormat(season: number): void {
     if (season < 0 || season > 99) {
-        throw OMSSErrors.invalidSeason(season, 99);
+        throw OMSSErrors.invalidSeason(season, 99)
     }
 }
 
@@ -25,7 +25,7 @@ export function validateSeasonFormat(season: number): void {
  */
 export function validateEpisodeFormat(episode: number, season: number): void {
     if (episode < 1 || episode > 9999) {
-        throw OMSSErrors.invalidEpisode(episode, season, 9999);
+        throw OMSSErrors.invalidEpisode(episode, season, 9999)
     }
 }
 
@@ -34,7 +34,7 @@ export function validateEpisodeFormat(episode: number, season: number): void {
  * Note: This is an async hook handler that doesn't use the 'done' callback
  */
 export async function validateContentType(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const accept = request.headers['accept'];
+    const accept = request.headers['accept']
 
     // Check Accept header
     if (accept && !accept.includes('application/json') && !accept.includes('*/*')) {
@@ -48,7 +48,7 @@ export async function validateContentType(request: FastifyRequest, reply: Fastif
                 },
             },
             traceId: request.id,
-        });
+        })
     }
 }
 
@@ -62,17 +62,17 @@ export function createTMDBValidator(tmdbService: TMDBService) {
          */
         async validateMovie(tmdbId: string): Promise<void> {
             // First check format
-            validateTmdbIdFormat(tmdbId);
+            validateTmdbIdFormat(tmdbId)
 
             // Then validate with TMDB
-            const result = await tmdbService.validateMovie(tmdbId);
+            const result = await tmdbService.validateMovie(tmdbId)
 
             if (!result.exists) {
-                throw OMSSErrors.invalidTmdbId(tmdbId);
+                throw OMSSErrors.invalidTmdbId(tmdbId)
             }
 
             if (!result.released) {
-                throw OMSSErrors.invalidTmdbId(tmdbId);
+                throw OMSSErrors.invalidTmdbId(tmdbId)
             }
         },
 
@@ -81,20 +81,20 @@ export function createTMDBValidator(tmdbService: TMDBService) {
          */
         async validateTVEpisode(tmdbId: string, season: number, episode: number): Promise<void> {
             // First check formats
-            validateTmdbIdFormat(tmdbId);
-            validateSeasonFormat(season);
-            validateEpisodeFormat(episode, season);
+            validateTmdbIdFormat(tmdbId)
+            validateSeasonFormat(season)
+            validateEpisodeFormat(episode, season)
 
             // Then validate with TMDB
-            const result = await tmdbService.validateTVEpisode(tmdbId, season, episode);
+            const result = await tmdbService.validateTVEpisode(tmdbId, season, episode)
 
             if (!result.exists) {
-                throw OMSSErrors.invalidEpisode(episode, season, -1);
+                throw OMSSErrors.invalidEpisode(episode, season, -1)
             }
 
             if (!result.released) {
-                throw OMSSErrors.invalidEpisode(episode, season, -1);
+                throw OMSSErrors.invalidEpisode(episode, season, -1)
             }
         },
-    };
+    }
 }

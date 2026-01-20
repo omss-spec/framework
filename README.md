@@ -1,16 +1,32 @@
 <div align="center">
 
-# OMSS Example Backend
+# OMSS Framework
 
-<img  alt="40211688-73db-47bd-8153-30d1a416f576" src="https://github.com/user-attachments/assets/bc6d19dc-0d86-43e5-86cc-6e1d32bdab40" />
+[![NPM Version](https://img.shields.io/npm/v/@omss/framework.svg)](https://www.npmjs.com/package/@omss/framework)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
+[![OMSS Spec](https://img.shields.io/badge/OMSS-v1.0.0-orange.svg)](https://github.com/omss-spec/omss-spec)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
-This is an extendable example implementation of the **[OMSS (Open Media Streaming Standard)](https://github.com/omss-spec/omss-spec)** backend server. It demonstrates how to build a compliant streaming media aggregation service that scrapes content from multiple providers and returns standardized responses. This is nearly a scraping framework. It handles most of the logic already for you. You just have to add the scraping logic!
+<img  alt="social preview" src="https://github.com/user-attachments/assets/bc6d19dc-0d86-43e5-86cc-6e1d32bdab40" />
+
+This is an extendable multi site scraping framework, which follows the implementation guidelines of the **[OMSS (Open Media Streaming Standard)](https://github.com/omss-spec/omss-spec)**. It demonstrates how to build a compliant streaming media aggregation service that scrapes content from multiple providers and returns standardized responses. It handles most of the logic already for you. You just have to add the scraping logic!
+
+---
+
+### [_🚀Check This Template Out To Get Started!🚀_](https://github.com/omss-spec/template)
+
+---
 
 </div>
 
 ## 🎯 What is OMSS?
 
 OMSS is an open standard for streaming media aggregation. It provides a unified API for fetching movie and TV show streaming sources from multiple providers, with built-in proxy support, subtitle handling, and quality selection.
+
+## 🔍 What is the `@omss/framework`?
+
+The `@omss/framework` is the official TypeScript/Node.js implementation framework that makes building OMSS-compliant backends effortless. Instead of manually implementing the specification from scratch, developers can focus solely on writing provider scraping logic while the framework handles all the boilerplate — routing, validation, proxy management, caching, error handling, and response formatting.
 
 ### Key Features
 
@@ -482,7 +498,6 @@ REDIS_PASSWORD=      # Redis password if required
 │  └── Manages all registered providers                       │
 ├─────────────────────────────────────────────────────────────┤
 │  Providers (Implement BaseProvider)                         │
-│  ├── VixSrcProvider                                         │
 │  ├── YourCustomProvider                                     │
 │  └── ...                                                    │
 ├─────────────────────────────────────────────────────────────┤
@@ -516,7 +531,7 @@ This implementation follows the [OMSS Specification](https://github.com/omss-spe
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+Contributions are welcome! Please read [our contributing guidelines](https://github.com/omss-spec/omss-spec/blob/main/CONTRIBUTING.md) before submitting PRs.
 
 ## 📄 License
 
@@ -524,10 +539,5 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [TMDB](https://www.themoviedb.org/) for their excellent API
-- All provider maintainers
+- All maintainers
 - OMSS specification contributors
-
----
-
-**Note**: This is a reference implementation. Always ensure you have the legal right to stream content and comply with applicable copyright laws in your jurisdiction.

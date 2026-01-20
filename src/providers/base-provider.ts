@@ -1,4 +1,4 @@
-import { ProviderCapabilities, ProviderMediaObject, ProviderResult } from '../core/types';
+import { ProviderCapabilities, ProviderMediaObject, ProviderResult } from '../core/types'
 
 /**
  * Console wrapper for provider logging
@@ -15,49 +15,49 @@ class ProviderLogger {
      */
     private formatPrefix(media?: ProviderMediaObject): string {
         if (this.isProduction) {
-            return `[${this.providerName}]`;
+            return `[${this.providerName}]`
         }
 
-        const parts = [`[${this.providerName}]`, `[${this.providerId}]`];
+        const parts = [`[${this.providerName}]`, `[${this.providerId}]`]
 
         if (media) {
             if (media.type === 'movie') {
-                parts.push(`[Movie: ${media.tmdbId}]`);
-                if (media.title) parts.push(`[${media.title}]`);
+                parts.push(`[Movie: ${media.tmdbId}]`)
+                if (media.title) parts.push(`[${media.title}]`)
             } else {
-                parts.push(`[TV: ${media.tmdbId}]`, `[S${media.s}E${media.e}]`);
-                if (media.title) parts.push(`[${media.title}]`);
+                parts.push(`[TV: ${media.tmdbId}]`, `[S${media.s}E${media.e}]`)
+                if (media.title) parts.push(`[${media.title}]`)
             }
         }
 
-        return parts.join(' ');
+        return parts.join(' ')
     }
 
     log(message: string, media?: ProviderMediaObject): void {
-        if (this.isProduction) return;
-        console.log(`${this.formatPrefix(media)} ${message}`);
+        if (this.isProduction) return
+        console.log(`${this.formatPrefix(media)} ${message}`)
     }
 
     info(message: string, media?: ProviderMediaObject): void {
-        console.info(`${this.formatPrefix(media)} ${message}`);
+        console.info(`${this.formatPrefix(media)} ${message}`)
     }
 
     warn(message: string, media?: ProviderMediaObject): void {
-        console.warn(`${this.formatPrefix(media)} ⚠️  ${message}`);
+        console.warn(`${this.formatPrefix(media)} ⚠️  ${message}`)
     }
 
     error(message: string, error?: any, media?: ProviderMediaObject): void {
-        console.error(`${this.formatPrefix(media)} ❌ ${message}`, error || '');
+        console.error(`${this.formatPrefix(media)} ❌ ${message}`, error || '')
     }
 
     debug(message: string, data?: any, media?: ProviderMediaObject): void {
-        if (this.isProduction) return;
-        console.debug(`${this.formatPrefix(media)} 🔍 ${message}`, data || '');
+        if (this.isProduction) return
+        console.debug(`${this.formatPrefix(media)} 🔍 ${message}`, data || '')
     }
 
     success(message: string, media?: ProviderMediaObject): void {
-        if (this.isProduction) return;
-        console.log(`${this.formatPrefix(media)} ✅ ${message}`);
+        if (this.isProduction) return
+        console.log(`${this.formatPrefix(media)} ✅ ${message}`)
     }
 }
 
@@ -65,107 +65,107 @@ class ProviderLogger {
  * Proxy URL configuration
  */
 interface ProxyConfig {
-    baseUrl?: string;
-    host?: string;
-    port?: number;
-    protocol?: 'http' | 'https';
+    baseUrl?: string
+    host?: string
+    port?: number
+    protocol?: 'http' | 'https'
 }
 
 export abstract class BaseProvider {
-    abstract readonly id: string;
-    abstract readonly name: string;
-    abstract readonly enabled: boolean;
-    abstract readonly BASE_URL: string;
-    abstract readonly HEADERS: Record<string, string>;
-    abstract readonly capabilities: ProviderCapabilities;
+    abstract readonly id: string
+    abstract readonly name: string
+    abstract readonly enabled: boolean
+    abstract readonly BASE_URL: string
+    abstract readonly HEADERS: Record<string, string>
+    abstract readonly capabilities: ProviderCapabilities
 
     /**
      * Protected console logger instance (lazy initialized)
      */
-    private _console?: ProviderLogger;
+    private _console?: ProviderLogger
 
     /**
      * Proxy configuration (set by ProviderRegistry)
      */
-    private static proxyConfig: ProxyConfig = {};
+    private static proxyConfig: ProxyConfig = {}
 
     /**
      * Get console logger (lazy initialization)
      */
     protected get console(): ProviderLogger {
         if (!this._console) {
-            this._console = new ProviderLogger(this.id, this.name);
+            this._console = new ProviderLogger(this.id, this.name)
         }
-        return this._console;
+        return this._console
     }
 
     /**
      * Set global proxy configuration
      */
     static setProxyConfig(config: ProxyConfig): void {
-        BaseProvider.proxyConfig = config;
+        BaseProvider.proxyConfig = config
     }
 
     /**
      * Get proxy base URL
      */
     private static getProxyBaseUrl(): string {
-        const config = BaseProvider.proxyConfig;
+        const config = BaseProvider.proxyConfig
 
         // If baseUrl is explicitly set, use it
         if (config.baseUrl) {
-            return config.baseUrl;
+            return config.baseUrl
         }
 
         // Build from host, port, protocol
-        const protocol = config.protocol || 'http';
-        const host = config.host || 'localhost';
-        const port = config.port;
+        const protocol = config.protocol || 'http'
+        const host = config.host || 'localhost'
+        const port = config.port
 
         // Only add port if it's not default for the protocol
-        const needsPort = (protocol === 'http' && port && port !== 80) || (protocol === 'https' && port && port !== 443);
+        const needsPort = (protocol === 'http' && port && port !== 80) || (protocol === 'https' && port && port !== 443)
 
         if (needsPort) {
-            return `${protocol}://${host}:${port}`;
+            return `${protocol}://${host}:${port}`
         }
 
-        return `${protocol}://${host}`;
+        return `${protocol}://${host}`
     }
 
     /**
      * Fetch sources for a movie
      */
-    abstract getMovieSources(media: ProviderMediaObject): Promise<ProviderResult>;
+    abstract getMovieSources(media: ProviderMediaObject): Promise<ProviderResult>
 
     /**
      * Fetch sources for a TV episode
      */
-    abstract getTVSources(media: ProviderMediaObject): Promise<ProviderResult>;
+    abstract getTVSources(media: ProviderMediaObject): Promise<ProviderResult>
 
     /**
      * Health check for provider availability
      */
     async healthCheck(): Promise<boolean> {
-        return this.enabled;
+        return this.enabled
     }
 
     /**
      * Helper: Create proxy URL with full server address
      */
     protected createProxyUrl(url: string, headers?: Record<string, string>): string {
-        const data = JSON.stringify({ url, headers });
-        const encodedData = encodeURIComponent(data);
-        const baseUrl = BaseProvider.getProxyBaseUrl();
+        const data = JSON.stringify({ url, headers })
+        const encodedData = encodeURIComponent(data)
+        const baseUrl = BaseProvider.getProxyBaseUrl()
 
-        return `${baseUrl}/v1/proxy?data=${encodedData}`;
+        return `${baseUrl}/v1/proxy?data=${encodedData}`
     }
 
     /**
      * Helper: Create relative proxy URL (for same-origin requests)
      */
     protected createRelativeProxyUrl(url: string, headers?: Record<string, string>): string {
-        const data = JSON.stringify({ url, headers });
-        return `/v1/proxy?data=${encodeURIComponent(data)}`;
+        const data = JSON.stringify({ url, headers })
+        return `/v1/proxy?data=${encodeURIComponent(data)}`
     }
 
     /**
@@ -178,31 +178,31 @@ export abstract class BaseProvider {
             { regex: /720p/i, quality: '720p' },
             { regex: /480p/i, quality: '480p' },
             { regex: /360p/i, quality: '360p' },
-        ];
+        ]
 
         for (const { regex, quality } of patterns) {
-            if (regex.test(filename)) return quality;
+            if (regex.test(filename)) return quality
         }
 
-        return 'unknown';
+        return 'unknown'
     }
 
     /**
      * Helper: Infer type from URL extension
      */
     protected inferType(url: string): string {
-        if (url.includes('.m3u8')) return 'hls';
-        if (url.includes('.mpd')) return 'dash';
-        if (url.includes('.mp4')) return 'mp4';
-        if (url.includes('.mkv')) return 'mkv';
-        if (url.includes('.webm')) return 'webm';
-        return 'embed';
+        if (url.includes('.m3u8')) return 'hls'
+        if (url.includes('.mpd')) return 'dash'
+        if (url.includes('.mp4')) return 'mp4'
+        if (url.includes('.mkv')) return 'mkv'
+        if (url.includes('.webm')) return 'webm'
+        return 'embed'
     }
 
     /**
      * Check if provider supports given content type
      */
     protected supportsContentType(type: 'movies' | 'tv' | 'sub'): boolean {
-        return this.capabilities.supportedContentTypes.includes(type);
+        return this.capabilities.supportedContentTypes.includes(type)
     }
 }

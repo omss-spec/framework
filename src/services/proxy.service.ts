@@ -1,12 +1,12 @@
-import axios from 'axios';
-import { ProxyData } from '../core/types';
-import { OMSSError } from '../core/errors';
+import axios from 'axios'
+import { ProxyData } from '../core/types'
+import { OMSSError } from '../core/errors'
 
 export interface ProxyResponse {
-    data: Buffer | string;
-    contentType: string;
-    statusCode: number;
-    headers?: Record<string, string>;
+    data: Buffer | string
+    contentType: string
+    statusCode: number
+    headers?: Record<string, string>
 }
 
 export class ProxyService {
@@ -15,9 +15,9 @@ export class ProxyService {
      */
     async proxyRequest(encodedData: string): Promise<ProxyResponse> {
         // Decode the data parameter
-        const proxyData = this.decodeProxyData(encodedData);
+        const proxyData = this.decodeProxyData(encodedData)
 
-        console.log(`[ProxyService] Proxying request to: ${proxyData.url}`);
+        console.log(`[ProxyService] Proxying request to: ${proxyData.url}`)
 
         try {
             const response = await axios.get(proxyData.url, {
@@ -29,16 +29,16 @@ export class ProxyService {
                 timeout: 30000, // 30 second timeout
                 maxRedirects: 5,
                 validateStatus: (status) => status < 500, // Accept 4xx errors
-            });
+            })
 
             // Check if we need to rewrite manifest files
-            const contentType = response.headers['content-type'] || '';
-            let responseData = response.data;
+            const contentType = response.headers['content-type'] || ''
+            let responseData = response.data
 
             if (this.isManifestFile(contentType, proxyData.url)) {
-                const manifestContent = response.data.toString('utf-8');
-                const rewrittenContent = this.rewriteManifest(manifestContent, proxyData.url, proxyData.headers);
-                responseData = Buffer.from(rewrittenContent, 'utf-8');
+                const manifestContent = response.data.toString('utf-8')
+                const rewrittenContent = this.rewriteManifest(manifestContent, proxyData.url, proxyData.headers)
+                responseData = Buffer.from(rewrittenContent, 'utf-8')
             }
 
             return {
@@ -49,17 +49,17 @@ export class ProxyService {
                     'Cache-Control': response.headers['cache-control'] || 'public, max-age=300',
                     'Access-Control-Allow-Origin': '*',
                 },
-            };
+            }
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 if (error.response) {
-                    throw new OMSSError('INTERNAL_ERROR', `Upstream returned ${error.response.status}`, error.response.status, { url: proxyData.url });
+                    throw new OMSSError('INTERNAL_ERROR', `Upstream returned ${error.response.status}`, error.response.status, { url: proxyData.url })
                 }
 
-                throw new OMSSError('INTERNAL_ERROR', `Failed to proxy request: ${error.message}`, 500, { url: proxyData.url });
+                throw new OMSSError('INTERNAL_ERROR', `Failed to proxy request: ${error.message}`, 500, { url: proxyData.url })
             }
 
-            throw error;
+            throw error
         }
     }
 
@@ -68,19 +68,19 @@ export class ProxyService {
      */
     private decodeProxyData(encodedData: string): ProxyData {
         try {
-            const decoded = decodeURIComponent(encodedData);
-            const data = JSON.parse(decoded) as ProxyData;
+            const decoded = decodeURIComponent(encodedData)
+            const data = JSON.parse(decoded) as ProxyData
 
             if (!data.url) {
-                throw new Error('Missing url field in proxy data');
+                throw new Error('Missing url field in proxy data')
             }
 
-            return data;
+            return data
         } catch (error) {
             throw new OMSSError('INVALID_PARAMETER', 'Invalid data parameter format', 400, {
                 parameter: 'data',
                 error: error instanceof Error ? error.message : 'Unknown',
-            });
+            })
         }
     }
 
@@ -88,7 +88,14 @@ export class ProxyService {
      * Check if the response is a manifest file that needs rewriting
      */
     private isManifestFile(contentType: string, url: string): boolean {
-        return contentType.includes('application/vnd.apple.mpegurl') || contentType.includes('application/x-mpegurl') || contentType.includes('application/dash+xml') || (contentType.includes('text/plain') && url.includes('.m3u8')) || url.endsWith('.m3u8') || url.endsWith('.mpd');
+        return (
+            contentType.includes('application/vnd.apple.mpegurl') ||
+            contentType.includes('application/x-mpegurl') ||
+            contentType.includes('application/dash+xml') ||
+            (contentType.includes('text/plain') && url.includes('.m3u8')) ||
+            url.endsWith('.m3u8') ||
+            url.endsWith('.mpd')
+        )
     }
 
     /**
@@ -97,46 +104,46 @@ export class ProxyService {
      * Also rewrites URLs in tag attributes like URI="..."
      */
     private rewriteManifest(content: string, baseUrl: string, headers?: Record<string, string>): string {
-        const lines = content.split('\n');
-        const rewrittenLines: string[] = [];
+        const lines = content.split('\n')
+        const rewrittenLines: string[] = []
 
         for (const line of lines) {
-            const trimmedLine = line.trim();
+            const trimmedLine = line.trim()
 
             // Handle tag lines with URI attributes (e.g., #EXT-X-KEY)
             if (line.startsWith('#') && this.hasUriAttribute(line)) {
-                rewrittenLines.push(this.rewriteTagAttributes(line, baseUrl, headers));
-                continue;
+                rewrittenLines.push(this.rewriteTagAttributes(line, baseUrl, headers))
+                continue
             }
 
             // Skip other comments and empty lines
             if (line.startsWith('#') || trimmedLine === '') {
-                rewrittenLines.push(line);
-                continue;
+                rewrittenLines.push(line)
+                continue
             }
 
             // Detect if this line contains a URL
             if (this.isUrlLine(trimmedLine)) {
-                const resolvedUrl = this.resolveUrl(baseUrl, trimmedLine);
-                const proxiedUrl = this.createProxyUrl(resolvedUrl, headers);
+                const resolvedUrl = this.resolveUrl(baseUrl, trimmedLine)
+                const proxiedUrl = this.createProxyUrl(resolvedUrl, headers)
 
                 // Preserve original indentation
-                const indent = line.match(/^\s*/)?.[0] || '';
-                rewrittenLines.push(indent + proxiedUrl);
+                const indent = line.match(/^\s*/)?.[0] || ''
+                rewrittenLines.push(indent + proxiedUrl)
             } else {
                 // Not a URL line, keep as-is
-                rewrittenLines.push(line);
+                rewrittenLines.push(line)
             }
         }
 
-        return rewrittenLines.join('\n');
+        return rewrittenLines.join('\n')
     }
 
     /**
      * Check if a tag line has URI attributes that need rewriting
      */
     private hasUriAttribute(line: string): boolean {
-        return /URI\s*=\s*["']([^"']+)["']/i.test(line);
+        return /URI\s*=\s*["']([^"']+)["']/i.test(line)
     }
 
     /**
@@ -148,13 +155,13 @@ export class ProxyService {
     private rewriteTagAttributes(line: string, baseUrl: string, headers?: Record<string, string>): string {
         // Match URI="..." or URI='...'
         return line.replace(/URI\s*=\s*["']([^"']+)["']/gi, (match, capturedUrl) => {
-            const resolvedUrl = this.resolveUrl(baseUrl, capturedUrl);
-            const proxiedUrl = this.createProxyUrl(resolvedUrl, headers);
+            const resolvedUrl = this.resolveUrl(baseUrl, capturedUrl)
+            const proxiedUrl = this.createProxyUrl(resolvedUrl, headers)
 
             // Preserve the quote style from the original
-            const quote = match.includes('"') ? '"' : "'";
-            return `URI=${quote}${proxiedUrl}${quote}`;
-        });
+            const quote = match.includes('"') ? '"' : "'"
+            return `URI=${quote}${proxiedUrl}${quote}`
+        })
     }
 
     /**
@@ -163,17 +170,17 @@ export class ProxyService {
     private isUrlLine(line: string): boolean {
         // Absolute URLs
         if (line.startsWith('http://') || line.startsWith('https://')) {
-            return true;
+            return true
         }
 
         // Protocol-relative URLs
         if (line.startsWith('//')) {
-            return true;
+            return true
         }
 
         // Root-relative URLs
         if (line.startsWith('/')) {
-            return true;
+            return true
         }
 
         // Relative URLs (files with extensions or paths)
@@ -189,10 +196,10 @@ export class ProxyService {
             line.includes('/') ||
             /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+/.test(line) // filename.extension pattern
         ) {
-            return true;
+            return true
         }
 
-        return false;
+        return false
     }
 
     /**
@@ -203,34 +210,34 @@ export class ProxyService {
         try {
             // Absolute URL (http:// or https://)
             if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-                return targetUrl;
+                return targetUrl
             }
 
-            const baseUrlObj = new URL(baseUrl);
+            const baseUrlObj = new URL(baseUrl)
 
             // Protocol-relative URL (//example.com/path)
             if (targetUrl.startsWith('//')) {
-                return `${baseUrlObj.protocol}${targetUrl}`;
+                return `${baseUrlObj.protocol}${targetUrl}`
             }
 
             // Root-relative URL (/path/to/file)
             if (targetUrl.startsWith('/')) {
-                return `${baseUrlObj.protocol}//${baseUrlObj.host}${targetUrl}`;
+                return `${baseUrlObj.protocol}//${baseUrlObj.host}${targetUrl}`
             }
 
             // Relative URL (path/to/file or file.ts)
             // Resolve against the base URL's directory
-            const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-            return new URL(targetUrl, baseDir).toString();
+            const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
+            return new URL(targetUrl, baseDir).toString()
         } catch (error) {
-            console.warn(`[ProxyService] Failed to resolve URL: ${targetUrl} against ${baseUrl}`);
+            console.warn(`[ProxyService] Failed to resolve URL: ${targetUrl} against ${baseUrl}`)
             // Fallback: try to construct a valid URL
             try {
-                const baseUrlObj = new URL(baseUrl);
-                const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-                return baseDir + targetUrl;
+                const baseUrlObj = new URL(baseUrl)
+                const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
+                return baseDir + targetUrl
             } catch {
-                return targetUrl; // Last resort: return as-is
+                return targetUrl // Last resort: return as-is
             }
         }
     }
@@ -240,15 +247,15 @@ export class ProxyService {
      * ALWAYS includes headers from the original request
      */
     private createProxyUrl(url: string, headers?: Record<string, string>): string {
-        const data = JSON.stringify({ url, headers });
-        return `/v1/proxy?data=${encodeURIComponent(data)}`;
+        const data = JSON.stringify({ url, headers })
+        return `/v1/proxy?data=${encodeURIComponent(data)}`
     }
 
     /**
      * Encode a URL for proxy usage (helper for providers)
      */
     static encodeProxyUrl(url: string, headers?: Record<string, string>): string {
-        const data = JSON.stringify({ url, headers });
-        return `/v1/proxy?data=${encodeURIComponent(data)}`;
+        const data = JSON.stringify({ url, headers })
+        return `/v1/proxy?data=${encodeURIComponent(data)}`
     }
 }

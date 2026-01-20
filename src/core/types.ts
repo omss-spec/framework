@@ -1,149 +1,162 @@
 // OMSS v1.0 specification types + some custom stuff
 
 export interface OMSSConfig {
-    name: string;
-    version: string;
-    port?: number;
-    host?: string;
-    publicUrl?: string; // Full public URL (e.g., https://api.example.com)
-    cache?: CacheConfig;
-    providers?: ProviderConfig[];
+    name: string
+    version: string
+    port?: number
+    host?: string
+    publicUrl?: string // Full public URL (e.g., https://api.example.com)
+    cache?: CacheConfig
+    providers?: ProviderConfig[]
     tmdb?: {
-        apiKey: string;
-        cacheTTL?: number;
-    };
+        apiKey: string
+        cacheTTL?: number
+    }
 }
 
 export interface CacheConfig {
-    type: 'memory' | 'redis';
+    type: 'memory' | 'redis'
     redis?: {
-        host: string;
-        port: number;
-        password?: string;
-    };
+        host: string
+        port: number
+        password?: string
+    }
     ttl?: {
-        sources: number; // seconds
-        subtitles: number;
-    };
+        sources: number // seconds
+        subtitles: number
+    }
 }
 
 export interface ProviderConfig {
-    id: string;
-    enabled: boolean;
-    priority?: number;
-    config?: Record<string, any>;
+    id: string
+    enabled: boolean
+    priority?: number
+    config?: Record<string, any>
 }
 
 // OMSS Response Types
 export interface SourceResponse {
-    responseId: string;
-    expiresAt: string;
-    sources: Source[];
-    subtitles: Subtitle[];
-    diagnostics: Diagnostic[];
+    responseId: string
+    expiresAt: string
+    sources: Source[]
+    subtitles: Subtitle[]
+    diagnostics: Diagnostic[]
 }
 
 export interface Source {
-    url: string;
-    type: SourceType;
-    quality: string;
-    audioTracks: AudioTrack[];
-    provider: Provider;
+    url: string
+    type: SourceType
+    quality: string
+    audioTracks: AudioTrack[]
+    provider: Provider
 }
 
-export type SourceType = 'hls' | 'dash' | 'http' | 'mp4' | 'mkv' | 'webm' | 'embed';
+export type SourceType = 'hls' | 'dash' | 'http' | 'mp4' | 'mkv' | 'webm' | 'embed'
 
 export interface AudioTrack {
-    language: string;
-    label: string;
+    language: string
+    label: string
 }
 
 export interface Subtitle {
-    url: string;
-    label: string;
-    format: SubtitleFormat;
+    url: string
+    label: string
+    format: SubtitleFormat
 }
 
-export type SubtitleFormat = 'vtt' | 'srt' | 'ass' | 'ssa' | 'ttml';
+export type SubtitleFormat = 'vtt' | 'srt' | 'ass' | 'ssa' | 'ttml'
 
 export interface Provider {
-    id: string;
-    name: string;
+    id: string
+    name: string
 }
 
 export interface Diagnostic {
-    code: DiagnosticCode;
-    message: string;
-    field: string;
-    severity: 'info' | 'warning' | 'error';
+    code: DiagnosticCode
+    message: string
+    field: string
+    severity: 'info' | 'warning' | 'error'
 }
 
-export type DiagnosticCode = 'QUALITY_INFERRED' | 'LANGUAGE_INFERRED' | 'TYPE_INFERRED' | 'SUBTITLE_LABEL_INFERRED' | 'PROVIDER_ERROR' | 'PARTIAL_SCRAPE';
+export type DiagnosticCode = 'QUALITY_INFERRED' | 'LANGUAGE_INFERRED' | 'TYPE_INFERRED' | 'SUBTITLE_LABEL_INFERRED' | 'PROVIDER_ERROR' | 'PARTIAL_SCRAPE'
 
 // Health Response
 export interface HealthResponse {
-    name: string;
-    version: string;
-    status: 'operational' | 'degraded' | 'maintenance' | 'offline';
+    name: string
+    version: string
+    status: 'operational' | 'degraded' | 'maintenance' | 'offline'
     endpoints: {
-        movie: string;
-        tv: string;
-        proxy: string;
-    };
-    spec: 'omss';
-    note?: string;
+        movie: string
+        tv: string
+        proxy: string
+        refresh: string
+    }
+    spec: 'omss'
+    note?: string
 }
 
 // Error Response
 export interface ErrorResponse {
     error: {
-        code: ErrorCode;
-        message: string;
-        details?: Record<string, any>;
-    };
-    traceId: string;
+        code: ErrorCode
+        message: string
+        details?: Record<string, any>
+    }
+    traceId: string
 }
 
-export type ErrorCode = 'INVALID_TMDB_ID' | 'INVALID_PARAMETER' | 'MISSING_PARAMETER' | 'INVALID_SEASON' | 'INVALID_EPISODE' | 'INVALID_RESPONSE_ID' | 'RESPONSE_ID_NOT_FOUND' | 'NO_SOURCES_AVAILABLE' | 'ENDPOINT_NOT_FOUND' | 'METHOD_NOT_ALLOWED' | 'INTERNAL_ERROR' | 'UNSUPPORTED_MEDIA_TYPE';
+export type ErrorCode =
+    | 'INVALID_TMDB_ID'
+    | 'INVALID_PARAMETER'
+    | 'MISSING_PARAMETER'
+    | 'INVALID_SEASON'
+    | 'INVALID_EPISODE'
+    | 'INVALID_RESPONSE_ID'
+    | 'RESPONSE_ID_NOT_FOUND'
+    | 'NO_SOURCES_AVAILABLE'
+    | 'ENDPOINT_NOT_FOUND'
+    | 'METHOD_NOT_ALLOWED'
+    | 'INTERNAL_ERROR'
+    | 'UNSUPPORTED_MEDIA_TYPE'
 
 // Provider Result
 export interface ProviderResult {
-    sources: Source[];
-    subtitles: Subtitle[];
-    diagnostics: Diagnostic[];
+    sources: Source[]
+    subtitles: Subtitle[]
+    diagnostics: Diagnostic[]
 }
 
 // Proxy Request
 export interface ProxyData {
-    url: string;
-    headers?: Record<string, string>;
+    url: string
+    headers?: Record<string, string>
 }
 
 export interface ContentRequest {
-    tmdbId: string;
-    season?: number;
-    episode?: number;
+    tmdbId: string
+    season?: number
+    episode?: number
 }
 
 export interface ResponseIdMapping {
-    cacheKey: string;
-    type: 'movie' | 'tv';
-    tmdbId: string;
-    season?: number;
-    episode?: number;
-    createdAt: number;
+    cacheKey: string
+    type: 'movie' | 'tv'
+    tmdbId: string
+    season?: number
+    episode?: number
+    createdAt: number
 }
 
 export interface ProviderCapabilities {
-    supportedContentTypes: Array<'movies' | 'tv' | 'sub'>;
+    supportedContentTypes: Array<'movies' | 'tv' | 'sub'>
 }
 
 export interface ProviderMediaObject {
-    type: 'movie' | 'tv';
-    tmdbId: string;
-    s?: number;
-    e?: number;
-    releaseYear?: string;
-    imdbId?: string;
-    title?: string;
+    type: 'movie' | 'tv'
+    tmdbId: string
+    s?: number
+    e?: number
+    releaseYear?: string
+    imdbId?: string
+    title?: string
 }
