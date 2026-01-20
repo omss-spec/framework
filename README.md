@@ -38,6 +38,8 @@ OMSS is an open standard for streaming media aggregation. It provides a unified 
 
 ## 🚀 Installation
 
+There is a template which you can use to easily create your own streaming backend. Check it out [here!](https://github.com/omss-spec/template) **This is the easiest way to create your own OMSS backend.**
+
 ### Prerequisites
 
 - Node.js 18.x or higher
@@ -48,23 +50,23 @@ OMSS is an open standard for streaming media aggregation. It provides a unified 
 ### Install Dependencies
 
 ```bash
-npm install
+# npm
+npm install @omss/framework
+
+# yarn
+yarn add @omss/framework
+
+# pnpm
+pnpm add @omss/framework
 ```
 
-### Setup Environment
+## 🚀 Quick start
 
-```bash
-cp .env.example .env
-```
+Minimal example using the built‑in provider and in‑memory cache:
 
-Edit `.env` and add your TMDB API key and modify other settings as needed.
-
-## 🎬 Quick Start
-
-### Basic Server Setup
-
-```typescript
-import { OMSSServer } from './src';
+```ts
+// src/server.ts
+import { OMSSServer } from '@omss/framework';
 import { ExampleProvider } from './src/providers/implementations/example-provider';
 
 // Create server instance
@@ -98,18 +100,22 @@ registry.register(new ExampleProvider());
 await server.start();
 ```
 
-### Test the API
+`.env`:
+
+```env
+TMDB_API_KEY=your_tmdb_key_here
+HOST=localhost
+PORT=3000
+NODE_ENV=development
+```
+
+Run in dev:
 
 ```bash
-# Get movie sources
-curl http://localhost:3000/v1/movies/550
-
-# Get TV episode sources
-curl http://localhost:3000/v1/tv/1399/1/1
-
-# Health check
-curl http://localhost:3000/v1/health
+npx tsx src/server.ts
 ```
+
+And then it should work!
 
 ## ⚙️ Configuration
 
