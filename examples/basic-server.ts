@@ -5,6 +5,7 @@ async function main() {
     const server = new OMSSServer({
         name: 'OMSS Backend',
         version: '1.0.0',
+        // note: 'You can add a custom note here.'
 
         // Network
         host: process.env.HOST ?? 'localhost',

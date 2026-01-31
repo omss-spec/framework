@@ -12,6 +12,7 @@ export interface OMSSConfig {
         apiKey: string
         cacheTTL?: number
     }
+    note?: string
 }
 
 export interface CacheConfig {

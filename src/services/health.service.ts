@@ -23,7 +23,7 @@ export class HealthService {
                 refresh: '/v1/refresh/{responseId}',
             },
             spec: 'omss',
-            note: `Running with ${this.registry.getEnabledProviders().length} provider(s). Supported Providers: ${this.registry
+            note: this.config.note ?? `Running with ${this.registry.getEnabledProviders().length} provider(s). Supported Providers: ${this.registry
                 .getEnabledProviders()
                 .map((p) => p.name)
                 .join(', ')}`,
