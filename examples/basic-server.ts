@@ -1,4 +1,4 @@
-import { OMSSServer } from '@omss/framework';
+import { OMSSServer } from '../src'; // replace this in your own implementation with '@omss/framework'
 import 'dotenv/config';
 
 async function main() {
@@ -36,7 +36,7 @@ async function main() {
     const registry = server.getRegistry();
 
     // Your custom providers (auto-discovered from ./src/providers/)
-    await registry.discoverProviders('./src/providers');
+    await registry.discoverProviders('./examples/providers');
 
     await server.start();
 }

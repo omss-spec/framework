@@ -42,9 +42,8 @@ export class ProviderRegistry {
     unregister(providerId: string): boolean {
         return this.providers.delete(providerId)
     }
-
     /**
-     * Auto-discover and register providers from a directory
+     * Auto-discover and register providers from a directory (recursive)
      */
     async discoverProviders(directory: string): Promise<void> {
         try {
@@ -54,47 +53,53 @@ export class ProviderRegistry {
                 .access(absoluteDir)
                 .then(() => true)
                 .catch(() => false)
+
             if (!dirExists) {
                 console.warn(`[ProviderRegistry] Directory does not exist: ${absoluteDir}`)
                 return
             }
 
-            const files = await fs.readdir(absoluteDir)
-            console.log(`[ProviderRegistry] Scanning ${files.length} file(s) in ${absoluteDir}`)
+            const entries = await fs.readdir(absoluteDir, { withFileTypes: true })
+            console.log(`[ProviderRegistry] Scanning ${entries.length} item(s) in ${absoluteDir}`)
 
-            for (const file of files) {
+            for (const entry of entries) {
+                const fullPath = path.resolve(absoluteDir, entry.name)
+
+                if (entry.isDirectory()) {
+                    // Recurse into subdirectory
+                    await this.discoverProviders(fullPath)
+                    continue
+                }
+
+                // Only handle files from here on
+                const file = entry.name
                 if (!file.endsWith('.js') && !file.endsWith('.ts')) continue
                 if (file.includes('.test.') || file.includes('.spec.')) continue
                 if (file.endsWith('.d.ts')) continue
 
-                const filePath = path.resolve(absoluteDir, file)
-
                 try {
-                    const fileUrl = pathToFileURL(filePath).href
-
-                    console.log(`[ProviderRegistry] Loading provider from: ${file}`)
+                    const fileUrl = pathToFileURL(fullPath).href
                     const module = await import(fileUrl)
 
                     let foundProvider = false
-                    for (const exportName of Object.keys(module)) {
-                        const ExportedClass = module[exportName]
-
-                        if (typeof ExportedClass === 'function' && ExportedClass.prototype instanceof BaseProvider) {
-                            const instance = new ExportedClass()
-                            this.register(instance)
-                            foundProvider = true
+                    for (const [name, ExportedClass] of Object.entries(module)) {
+                        if (typeof ExportedClass === 'function' && ExportedClass.prototype) {
+                            if (BaseProvider.prototype.isPrototypeOf(ExportedClass.prototype)) {
+                                try {
+                                    // Check if ExportedClass is a constructable class
+                                    const instance = new (ExportedClass as { new (): BaseProvider })()
+                                    this.register(instance)
+                                    foundProvider = true
+                                } catch (err) {
+                                    console.warn(`[ProviderRegistry] Failed to instantiate ${name} from ${fullPath}:`, err)
+                                }
+                            }
                         }
                     }
-
-                    if (!foundProvider) {
-                        console.warn(`[ProviderRegistry] No provider classes found in ${file}`)
-                    }
                 } catch (error) {
-                    console.error(`[ProviderRegistry] Failed to load provider from ${file}:`, error)
+                    console.error(`[ProviderRegistry] Failed to load provider from ${fullPath}:`, error)
                 }
             }
-
-            console.log(`[ProviderRegistry] Discovery complete. Total providers: ${this.providers.size}`)
         } catch (error) {
             console.error(`[ProviderRegistry] Failed to discover providers in ${directory}:`, error)
         }

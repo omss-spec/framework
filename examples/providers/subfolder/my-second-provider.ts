@@ -1,5 +1,5 @@
-import { BaseProvider } from '@omss/framework';
-import type { ProviderCapabilities, ProviderMediaObject, ProviderResult } from '@omss/framework';
+import { BaseProvider } from '../../../src/'; // replace this in your own implementation with '@omss/framework'
+import type { ProviderCapabilities, ProviderMediaObject, ProviderResult } from '../../../src/'; // replace this in your own implementation with '@omss/framework'
 
 export class ExampleProvider extends BaseProvider {
     readonly id = 'example-provider-2';
