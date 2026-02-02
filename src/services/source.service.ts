@@ -1,6 +1,6 @@
 import { ProviderRegistry } from '../providers/provider-registry.js'
 import { CacheService } from '../core/cache.js'
-import { SourceResponse, ProviderResult, ResponseIdMapping, ProviderMediaObject } from '../core/types.js'
+import { SourceResponse, ProviderResult, ResponseIdMapping, ProviderMediaObject, Diagnostic, Subtitle, Source } from '../core/types.js'
 import { createTMDBValidator } from '../middleware/validation.js'
 import { OMSSErrors } from '../core/errors.js'
 import { TMDBService } from '../services/tmdb.service.js'
@@ -221,14 +221,37 @@ export class SourceService {
 
     /**
      * Build final response from provider results
+     * Deduplicates sources and subtitles by URL
      */
     private buildResponse(results: ProviderResult[]): SourceResponse {
-        const allSources = results.flatMap((r) => r.sources)
-        const allSubtitles = results.flatMap((r) => r.subtitles)
-        const allDiagnostics = results.flatMap((r) => r.diagnostics)
+        const allSourcesMap = new Map<string, Source>()
+        const allSubtitlesMap = new Map<string, Subtitle>()
+        const allDiagnostics: Diagnostic[] = []
+
+        // Deduplicate sources by URL
+        results.forEach((r) => {
+            r.sources.forEach((source) => {
+                if (!allSourcesMap.has(source.url)) {
+                    allSourcesMap.set(source.url, source)
+                }
+            })
+
+            // Deduplicate subtitles by URL
+            r.subtitles.forEach((subtitle) => {
+                if (!allSubtitlesMap.has(subtitle.url)) {
+                    allSubtitlesMap.set(subtitle.url, subtitle)
+                }
+            })
+
+            // Collect all diagnostics
+            allDiagnostics.push(...r.diagnostics)
+        })
+
+        const uniqueSources = Array.from(allSourcesMap.values())
+        const uniqueSubtitles = Array.from(allSubtitlesMap.values())
 
         const failedProviders = results.filter((r) => r.sources.length === 0).length
-        if (failedProviders > 0 && allSources.length > 0) {
+        if (failedProviders > 0 && uniqueSources.length > 0) {
             allDiagnostics.push({
                 code: 'PARTIAL_SCRAPE',
                 message: `Only ${results.length - failedProviders} of ${results.length} providers returned results`,
@@ -242,8 +265,8 @@ export class SourceService {
         return {
             responseId: uuidv4(),
             expiresAt,
-            sources: allSources,
-            subtitles: allSubtitles,
+            sources: uniqueSources,
+            subtitles: uniqueSubtitles,
             diagnostics: allDiagnostics,
         }
     }

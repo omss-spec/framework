@@ -10,6 +10,7 @@ export interface ProxyResponse {
 }
 
 export class ProxyService {
+    private isProd: boolean = process.env.NODE_ENV === 'production'
     /**
      * Proxy a request to an upstream provider
      */
@@ -17,7 +18,7 @@ export class ProxyService {
         // Decode the data parameter
         const proxyData = this.decodeProxyData(encodedData)
 
-        console.log(`[ProxyService] Proxying request to: ${proxyData.url}`)
+        this.isProd ?? console.log(`[ProxyService] Proxying request to: ${proxyData.url}`)
 
         try {
             const response = await axios.get(proxyData.url, {
@@ -26,9 +27,12 @@ export class ProxyService {
                     'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
                 },
                 responseType: 'arraybuffer',
-                timeout: 30000, // 30 second timeout
+                timeout: 30000,
                 maxRedirects: 5,
-                validateStatus: (status) => status < 500, // Accept 4xx errors
+                validateStatus: (status) => status < 500,
+                ...(proxyData.headers?.Range && {
+                    headers: { Range: proxyData.headers.Range },
+                }),
             })
 
             // Check if we need to rewrite manifest files
@@ -43,11 +47,18 @@ export class ProxyService {
 
             return {
                 data: responseData,
-                contentType: contentType,
+                contentType: contentType || this.getMimeType(proxyData.url),
                 statusCode: response.status,
                 headers: {
-                    'Cache-Control': response.headers['cache-control'] || 'public, max-age=300',
                     'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': 'true',
+                    'Access-Control-Expose-Headers': 'Content-Type,Content-Range,Accept-Ranges,Cache-Control,Content-Length',
+
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': response.headers['cache-control'] || 'public, max-age=3600',
+
+                    'Content-Length': response.headers['content-length'],
+                    'Content-Range': response.headers['content-range'],
                 },
             }
         } catch (error) {
@@ -61,6 +72,20 @@ export class ProxyService {
 
             throw error
         }
+    }
+
+    /**
+     * Determine MIME type from URL or content
+     */
+    private getMimeType(url: string): string {
+        if (url.match(/\.vtt$/i)) return 'text/vtt'
+        if (url.match(/\.srt$/i)) return 'text/plain'
+        if (url.match(/\.ass|\.ssa$/i)) return 'text/plain'
+        if (url.match(/\.m3u8$/i)) return 'application/x-mpegURL'
+        if (url.match(/\.mpd$/i)) return 'application/dash+xml'
+        if (url.match(/\.(mp4|mkv|webm|avi|mov)$/i)) return 'video/mp4'
+        if (url.match(/\.ts$/i)) return 'video/mp2t'
+        return 'application/x-mpegURL'
     }
 
     /**
@@ -230,7 +255,7 @@ export class ProxyService {
             const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
             return new URL(targetUrl, baseDir).toString()
         } catch (error) {
-            console.warn(`[ProxyService] Failed to resolve URL: ${targetUrl} against ${baseUrl}`)
+            this.isProd ?? console.warn(`[ProxyService] Failed to resolve URL: ${targetUrl} against ${baseUrl}`)
             // Fallback: try to construct a valid URL
             try {
                 const baseUrlObj = new URL(baseUrl)
