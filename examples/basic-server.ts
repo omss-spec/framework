@@ -39,6 +39,16 @@ async function main() {
                 '*': [/\/proxy\/(.+)$/, /\/m3u8-proxy\?url=(.+?)(&|$)/, ],
             },
         },
+
+        // You can override the default cors settings, by passing your own fastify cors options here. By default, it allows all origins.
+        /*
+        cors: {
+            origin: '*',
+            methods: ['GET', 'OPTIONS', 'HEAD'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Accept'],
+            exposedHeaders: ['Content-Length', 'Content-Type', 'Content-Range', 'Accept-Ranges'],
+        }
+        */
     })
 
     // Register providers
@@ -46,6 +56,18 @@ async function main() {
 
     // Your custom providers (auto-discovered from ./src/providers/)
     await registry.discoverProviders('./examples/providers')
+
+    // before starting the server, you can also modify any fastify instance settings, by getting the instance via server.getFastifyInstance() and calling any of its methods. For example, to add a custom route:
+    /*
+    const fastify = server.getFastifyInstance()
+    fastify.get('/custom-route', async (request, reply) => {
+        return { message: 'This is a custom route!' }
+    })
+
+    or add a custom hook/middleware/fastify plugin, etc...
+
+    NOTE: If you want to add custom routes, hooks, or plugins *before mapping the default routes* (required for oauth2 for example), you cannot do this yet. If you wish to do this, please open an issue or submit a PR to add a new option in the server constructor that allows you to do this. For now, you can add custom routes, hooks, or plugins after the server has started.
+    */
 
     await server.start()
 }

@@ -14,7 +14,7 @@ This is an extendable multi site scraping framework, which follows the implement
 
 ---
 
-### [_🚀Check This Template Out To Get Started!🚀_](https://github.com/omss-spec/template)
+## [_🚀Check This Template Out To Get Started!🚀_](https://github.com/omss-spec/template)
 
 ---
 
@@ -26,7 +26,7 @@ OMSS is an open standard for streaming media aggregation. It provides a unified 
 
 ## 🔍 What is the `@omss/framework`?
 
-The `@omss/framework` is the official TypeScript/Node.js implementation framework that makes building OMSS-compliant backends effortless. Instead of manually implementing the specification from scratch, developers can focus solely on writing provider scraping logic while the framework handles all the boilerplate — routing, validation, proxy management, caching, error handling, and response formatting.
+The `@omss/framework` is the official TypeScript/Node.js implementation framework that makes building OMSS-compliant backends effortless. Instead of manually implementing the standard from scratch, developers can focus solely on writing provider scraping logic while the framework handles all the boilerplate — routing, validation, proxy management, caching, error handling, and response formatting.
 
 ### Key Features
 
@@ -82,8 +82,8 @@ Minimal example using the built‑in provider and in‑memory cache:
 
 ```ts
 // src/server.ts
-import { OMSSServer } from '@omss/framework';
-import { ExampleProvider } from './src/providers/implementations/example-provider';
+import { OMSSServer } from '@omss/framework'
+import { ExampleProvider } from './src/providers/implementations/example-provider'
 
 // Create server instance
 const server = new OMSSServer({
@@ -102,33 +102,63 @@ const server = new OMSSServer({
         apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
-});
+    proxyConfig: {
+        knownThirdPartyProxies: {
+            'hls1.vid1.site': [/\/proxy\/(.+)$/],
+            'madplay.site': [/\/api\/[^/]+\/proxy\?url=(.+)$/],
+            '*': [/\/proxy\/(.+)$/, /\/m3u8-proxy\?url=(.+?)(&|$)/],
+        },
+    },
+    // You can override the default cors settings, by passing your own fastify cors options here. By default, it allows all origins.
+    /*
+    cors: {
+        origin: '*',
+        methods: ['GET', 'OPTIONS', 'HEAD'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Accept'],
+        exposedHeaders: ['Content-Length', 'Content-Type', 'Content-Range', 'Accept-Ranges'],
+    },
+    */
+})
 
 // Register providers
-const registry = server.getRegistry();
-registry.register(new ExampleProvider());
+const registry = server.getRegistry()
+registry.register(new ExampleProvider())
 
 // or use the very cool auto-discovery feature
 // registry.discoverProviders('./path/to/providerfolder');
-// Note: this is relative to where you start the server.
+// Note: this is relative to *where you start the server*.
+
+// before starting the server, you can also modify any fastify instance settings, by getting the instance via server.getFastifyInstance() and calling any of its methods. For example, to add a custom route:
 
 // Start server
-await server.start();
+await server.start()
 ```
 
 `.env`:
 
 ```env
-TMDB_API_KEY=your_tmdb_key_here
-HOST=localhost
-PORT=3000
-NODE_ENV=development
+# Server Configuration
+PORT=3000            # Port number for the server
+HOST=0.0.0.0         # Use 'localhost' to restrict to local access
+NODE_ENV=development # 'development' | 'production'
+
+# TMDB Configuration
+TMDB_API_KEY=your_tmdb_api_key_here
+TMDB_CACHE_TTL=86400
+
+# Cache Configuration
+CACHE_TYPE=memory    # 'memory' | 'redis'
+
+# Redis Configuration (if using Redis cache)
+REDIS_HOST=localhost # default Redis host
+REDIS_PORT=6379      # default Redis port
+REDIS_PASSWORD=      # Redis password if required
 ```
 
 Run in dev:
 
 ```bash
-npx tsx src/server.ts
+npm run dev
 ```
 
 And then it should work!
@@ -140,33 +170,46 @@ And then it should work!
 ```typescript
 interface OMSSConfig {
     // Required: Server identification
-    name: string; // Your server name
-    version: string; // OMSS Spec version
+    name: string // Your server name
+    version: string // OMSS Spec version
 
     // Optional: Network settings
-    host?: string; // Default: 'localhost'
-    port?: number; // Default: 3000
-    publicUrl?: string; // For reverse proxy setups
+    host?: string // Default: 'localhost'
+    port?: number // Default: 3000
+    publicUrl?: string // For reverse proxy setups
 
     // Optional: Cache configuration
     cache?: {
-        type: 'memory' | 'redis';
+        type: 'memory' | 'redis'
         ttl: {
-            sources: number;
-            subtitles: number;
-        };
+            sources: number
+            subtitles: number
+        }
         redis?: {
-            host: string;
-            port: number;
-            password?: string;
-        };
-    };
+            host: string
+            port: number
+            password?: string
+        }
+    }
 
     // Required: TMDB configuration
     tmdb?: {
-        apiKey?: string; // Can also use TMDB_API_KEY env var
-        cacheTTL?: number; // Default: 86400 (24 hours)
-    };
+        apiKey?: string // Can also use TMDB_API_KEY env var
+        cacheTTL?: number // Default: 86400 (24 hours)
+    }
+
+    // Proxy configuration
+    proxyConfig?: {
+        knownThirdPartyProxies: Record<string, RegExp[]> // for this, see the documentation in docs/third-party-pattern-config.md
+    }
+
+    // Optional: CORS configuration (overrides default)
+    cors?: {
+        origin: string
+        methods: string[]
+        allowedHeaders: string[]
+        exposedHeaders: string[]
+    }
 }
 ```
 
@@ -191,7 +234,10 @@ const server = new OMSSServer({
         apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
-});
+    proxyConfig: {
+        knownThirdPartyProxies: {}, // for this, see the documentation in docs/third-party-pattern-config.md
+    },
+})
 ```
 
 #### Production with Redis
@@ -219,7 +265,16 @@ const server = new OMSSServer({
         apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
-});
+    proxyConfig: {
+        knownThirdPartyProxies: {}, // for this, see the documentation in docs/third-party-pattern-config.md
+    },
+    cors: {
+        origin: 'https://myapp.com',
+        methods: ['GET', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Length', 'Content-Type'],
+    },
+})
 ```
 
 #### Behind Reverse Proxy
@@ -243,7 +298,16 @@ const server = new OMSSServer({
         apiKey: process.env.TMDB_API_KEY,
         cacheTTL: 86400,
     },
-});
+    proxyConfig: {
+        knownThirdPartyProxies: {}, // for this, see the documentation in docs/third-party-pattern-config.md
+    },
+    cors: {
+        origin: 'https://myapp.com',
+        methods: ['GET', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Length', 'Content-Type'],
+    },
+})
 ```
 
 ## 🔌 Creating Custom Providers
@@ -265,8 +329,8 @@ The easiest way to add a new provider:
 3. In the Setup, use the `discoverProviders` method of the `ProviderRegistry` to load all providers from that directory:
 
     ```typescript
-    const registry = server.getRegistry();
-    registry.discoverProviders('./src/providers/implementations'); // relative to where you start the server from
+    const registry = server.getRegistry()
+    registry.discoverProviders('./src/providers/implementations') // relative to where you start the server from
     ```
 
 4. That's it! The provider will be automatically discovered and registered when you start the server!
@@ -276,34 +340,34 @@ No imports, no manual registration needed!
 ### Minimal Provider Example
 
 ```typescript
-import { BaseProvider } from './src/providers/base-provider';
-import { ProviderCapabilities, ProviderMediaObject, ProviderResult } from './src/core/types';
+import { BaseProvider } from './src/providers/base-provider'
+import { ProviderCapabilities, ProviderMediaObject, ProviderResult } from './src/core/types'
 
 export class MyProvider extends BaseProvider {
     // Required: Provider identification
-    readonly id = 'my-provider';
-    readonly name = 'My Provider';
-    readonly enabled = true;
+    readonly id = 'my-provider'
+    readonly name = 'My Provider'
+    readonly enabled = true
 
     // Required: Base URL and headers
-    readonly BASE_URL = 'https://provider.example.com';
+    readonly BASE_URL = 'https://provider.example.com'
     readonly HEADERS = {
         'User-Agent': 'Mozilla/5.0',
         Referer: 'https://provider.example.com',
-    };
+    }
 
     // Required: Declare what this provider supports
     readonly capabilities: ProviderCapabilities = {
         supportedContentTypes: ['movies', 'tv'],
-    };
+    }
 
     // Implement movie scraping
     async getMovieSources(media: ProviderMediaObject): Promise<ProviderResult> {
-        this.console.log('Fetching movie sources', media);
+        this.console.log('Fetching movie sources', media)
 
         try {
             // Your scraping logic here
-            const streamUrl = await this.scrapeMovieUrl(media.tmdbId); // this is just some example function
+            const streamUrl = await this.scrapeMovieUrl(media.tmdbId) // this is just some example function
 
             return {
                 sources: [
@@ -325,9 +389,9 @@ export class MyProvider extends BaseProvider {
                 ],
                 subtitles: [],
                 diagnostics: [],
-            };
+            }
         } catch (error) {
-            this.console.error('Failed to fetch sources', error, media);
+            this.console.error('Failed to fetch sources', error, media)
 
             return {
                 sources: [],
@@ -340,23 +404,23 @@ export class MyProvider extends BaseProvider {
                         severity: 'error',
                     },
                 ],
-            };
+            }
         }
     }
 
     // Implement TV scraping
     async getTVSources(media: ProviderMediaObject): Promise<ProviderResult> {
         // Similar to getMovieSources but for TV
-        return { sources: [], subtitles: [], diagnostics: [] };
+        return { sources: [], subtitles: [], diagnostics: [] }
     }
 
     // Optional: Custom health check
     async healthCheck(): Promise<boolean> {
         try {
-            const response = await fetch(this.BASE_URL);
-            return response.ok;
+            const response = await fetch(this.BASE_URL)
+            return response.ok
         } catch {
-            return false;
+            return false
         }
     }
 }
@@ -509,7 +573,7 @@ REDIS_PASSWORD=      # Redis password if required
 
 ## ✅ OMSS Compliance
 
-This implementation follows the [OMSS Specification](https://github.com/omss-spec/omss-spec):
+This implementation follows the [OMSS Standard](https://github.com/omss-spec/omss-spec):
 
 - ✅ **Standardized Response Format**: All responses follow OMSS schema
 - ✅ **TMDB Validation**: All requests validated against TMDB
@@ -524,7 +588,7 @@ This implementation follows the [OMSS Specification](https://github.com/omss-spe
 
 ## 📚 Additional Resources
 
-- [OMSS Specification](https://github.com/omss-spec/omss-spec)
+- [OMSS standard](https://github.com/omss-spec/omss-spec)
 - [Basic Server Example](./examples/basic-server.ts)
 - [Provider Example](./examples/example-provider.ts)
 - [TMDB API Documentation](https://developers.themoviedb.org/3)
@@ -540,4 +604,4 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 - All maintainers
-- OMSS specification contributors
+- OMSS standard contributors

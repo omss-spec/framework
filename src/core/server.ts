@@ -1,5 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify'
-import cors from '@fastify/cors'
+import cors, { FastifyCorsOptions } from '@fastify/cors'
 import { OMSSConfig } from './types.js'
 import { ProviderRegistry } from '../providers/provider-registry.js'
 import { createCacheService, CacheService } from './cache.js'
@@ -92,7 +92,7 @@ export class OMSSServer {
         this.healthController = new HealthController(this.healthService)
 
         // Setup middleware and routes
-        this.setupMiddleware()
+        this.setupMiddleware(config.cors)
         this.setupRoutes()
         this.setupErrorHandlers()
     }
@@ -100,13 +100,14 @@ export class OMSSServer {
     /**
      * Setup middleware
      */
-    private setupMiddleware(): void {
+    private setupMiddleware(customCorsOptions?: FastifyCorsOptions): void {
         // CORS
-        this.app.register(cors, {
+        this.app.register(cors, customCorsOptions || {
             origin: '*',
-            methods: ['GET', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
-            credentials: false,
+            methods: ['GET', 'OPTIONS', 'HEAD'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Accept'],
+            exposedHeaders: ['Content-Length', 'Content-Type', 'Content-Range', 'Accept-Ranges'],
+            credentials: false
         })
 
         // Request logging

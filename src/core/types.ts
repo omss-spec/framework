@@ -1,4 +1,6 @@
-// OMSS v1.0 specification types + some custom stuff
+import { FastifyCorsOptions } from '@fastify/cors'
+
+// OMSS v1.0 standard types + some custom stuff
 
 export interface OMSSConfig {
     name: string
@@ -16,6 +18,7 @@ export interface OMSSConfig {
         knownThirdPartyProxies: Record<string, RegExp[]>;
     };
     note?: string
+    cors?: FastifyCorsOptions
 }
 
 export interface CacheConfig {
