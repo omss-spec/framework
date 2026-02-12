@@ -42,11 +42,11 @@ jobs:
           
           echo "Generating release notes from $PREVIOUS_TAG to $CURRENT_TAG"
           
-          # Get commits
+          # Get commit hashes
           if [ -z "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"%s|||%h" $CURRENT_TAG)
+            HASHES=$(git log --pretty=format:"%H" $CURRENT_TAG)
           else
-            COMMITS=$(git log --pretty=format:"%s|||%h" $PREVIOUS_TAG..$CURRENT_TAG)
+            HASHES=$(git log --pretty=format:"%H" $PREVIOUS_TAG..$CURRENT_TAG)
           fi
           
           # Categorize commits
@@ -57,11 +57,19 @@ jobs:
           BREAKING=""
           OTHERS=""
           
-          while IFS='|||' read -r message hash; do
+          # Process each commit individually
+          while read -r hash; do
+            # Get the full message and short hash separately
+            message=$(git log --format=%s -n 1 $hash)
+            short_hash=$(git log --format=%h -n 1 $hash)
+            
             # Trim whitespace
             message=$(echo "$message" | xargs)
+            short_hash=$(echo "$short_hash" | xargs)
             
-            # Extract the actual message (remove prefix)
+            echo "Processing: '$message' ($short_hash)"
+            
+            # Extract clean message
             clean_message="$message"
             if [[ "$message" =~ ^[a-z]+: ]]; then
               clean_message="${message#*: }"
@@ -69,27 +77,27 @@ jobs:
             
             case "$message" in
               feat:*|feat\(*|feature:*)
-                FEATURES="${FEATURES}- [${clean_message}](https://github.com/${{ github.repository }}/commit/${hash})\n"
+                FEATURES="${FEATURES}- feat: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
                 ;;
               fix:*|fix\(*)
-                FIXES="${FIXES}- [${clean_message}](https://github.com/${{ github.repository }}/commit/${hash})\n"
+                FIXES="${FIXES}- fix: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
                 ;;
               docs:*|docs\(*)
-                DOCS="${DOCS}- [${clean_message}](https://github.com/${{ github.repository }}/commit/${hash})\n"
+                DOCS="${DOCS}- docs: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
                 ;;
               chore:*|chore\(*|ci:*|ci\(*|build:*|build\(*)
-                CHORES="${CHORES}- [${clean_message}](https://github.com/${{ github.repository }}/commit/${hash})\n"
+                CHORES="${CHORES}- chore: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
                 ;;
               *BREAKING*|*breaking*|*!:*)
-                BREAKING="${BREAKING}- [${message}](https://github.com/${{ github.repository }}/commit/${hash})\n"
+                BREAKING="${BREAKING}- breaking change: [${message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
                 ;;
               *)
-                OTHERS="${OTHERS}- [${message}](https://github.com/${{ github.repository }}/commit/${hash})\n"
+                OTHERS="${OTHERS}- [${message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
                 ;;
             esac
-          done <<< "$COMMITS"
+          done <<< "$HASHES"
           
-          # Build release notes
+          # Build release notes (same as before)
           NOTES="## Release $CURRENT_TAG"$'\n\n'
           
           if [ -n "$BREAKING" ]; then
@@ -120,20 +128,8 @@ jobs:
             NOTES="${NOTES}"$'\n'"**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG"
           fi
           
-          # Output using heredoc
           {
             echo "notes<<EOF"
             echo "$NOTES"
             echo "EOF"
           } >> $GITHUB_OUTPUT
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Release ${{ steps.currenttag.outputs.current_tag }}
-          body: ${{ steps.release_notes.outputs.notes }}
-          draft: false
-          generate_release_notes: false
-          tag_name: ${{ steps.currenttag.outputs.current_tag }}
-          prerelease: ${{ contains(steps.currenttag.outputs.current_tag, 'alpha') || contains(steps.currenttag.outputs.current_tag, 'beta') || contains(steps.currenttag.outputs.current_tag, 'rc') }}
-          token: ${{ secrets.GITHUB_TOKEN }}
