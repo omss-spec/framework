@@ -177,7 +177,7 @@ export class SourceService {
         }
 
         // Filter providers by capability
-        const supportedProviders = providers.filter((p) => p.capabilities.supportedContentTypes.includes(type === 'movie' ? 'movies' : 'tv'))
+        const supportedProviders = providers.filter((p) => p.capabilities.supportedContentTypes.includes(type === 'movie' ? 'movies' : 'tv')).filter((p) => p.enabled)
 
         console.log(`[SourceService] Fetching from ${supportedProviders.length} provider(s) ` + `(${providers.length - supportedProviders.length} filtered out)`)
 
