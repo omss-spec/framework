@@ -148,6 +148,10 @@ export abstract class BaseProvider {
                         break
                     }
                 }
+                // add protocol if missing
+                if (!/^https?:\/\//i.test(extracted)) {
+                    extracted = 'https://' + extracted
+                }
                 return extracted
             }
         }
