@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { ProxyService } from '../services/proxy.service.js'
+import { ProxyService, isStreamingResponse } from '../services/proxy.service.js'
 
 interface ProxyQuery {
     data: string
@@ -11,7 +11,7 @@ export class ProxyController {
     /**
      * GET /v1/proxy
      */
-    async proxy(request: FastifyRequest<{ Querystring: ProxyQuery }>, reply: FastifyReply) {
+    async proxy(request: FastifyRequest<{ Querystring: ProxyQuery }>, reply: FastifyReply): Promise<FastifyReply> {
         const { data } = request.query
 
         if (!data) {
@@ -26,6 +26,17 @@ export class ProxyController {
 
         const response = await this.proxyService.proxyRequest(data)
 
+        // Handle streaming response
+        if (isStreamingResponse(response)) {
+            reply
+                .code(response.statusCode)
+                .headers(response.headers)
+                .type(response.contentType)
+            
+            return reply.send(response.stream)
+        }
+
+        // Handle buffered response
         return reply
             .code(response.statusCode)
             .headers(response.headers || {})

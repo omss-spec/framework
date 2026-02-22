@@ -1,4 +1,5 @@
-import axios from 'axios'
+import axios, { AxiosResponse } from 'axios'
+import { Readable } from 'stream'
 import { ProxyData } from '../core/types.js'
 import { OMSSError } from '../core/errors.js'
 
@@ -9,58 +10,38 @@ export interface ProxyResponse {
     headers?: Record<string, string>
 }
 
+export interface StreamingProxyResponse {
+    stream: Readable
+    contentType: string
+    statusCode: number
+    headers: Record<string, string>
+}
+
+export type ProxyResult = ProxyResponse | StreamingProxyResponse
+
+export function isStreamingResponse(response: ProxyResult): response is StreamingProxyResponse {
+    return 'stream' in response && response.stream instanceof Readable
+}
+
 export class ProxyService {
     private isProd: boolean = process.env.NODE_ENV === 'production'
     /**
      * Proxy a request to an upstream provider
+     * Returns either buffered response or streaming response based on file type
      */
-    async proxyRequest(encodedData: string): Promise<ProxyResponse> {
-        // Decode the data parameter
+    async proxyRequest(encodedData: string): Promise<ProxyResult> {
         const proxyData = this.decodeProxyData(encodedData)
 
         this.isProd ?? console.log(`[ProxyService] Proxying request to: ${proxyData.url}`)
 
         try {
-            const response = await axios.get(proxyData.url, {
-                headers: {
-                    ...proxyData.headers,
-                    'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
-                },
-                responseType: 'arraybuffer',
-                timeout: 30000,
-                maxRedirects: 5,
-                validateStatus: (status) => status < 500,
-                ...(proxyData.headers?.Range && {
-                    headers: { Range: proxyData.headers.Range },
-                }),
-            })
-
-            // Check if we need to rewrite manifest files
-            const contentType = response.headers['content-type'] || ''
-            let responseData = response.data
-
-            if (this.isManifestFile(contentType, proxyData.url)) {
-                const manifestContent = response.data.toString('utf-8')
-                const rewrittenContent = this.rewriteManifest(manifestContent, proxyData.url, proxyData.headers)
-                responseData = Buffer.from(rewrittenContent, 'utf-8')
+            // Determine if this should be streamed
+            if (this.shouldStream(proxyData.url)) {
+                return await this.handleStreamingRequest(proxyData)
             }
 
-            return {
-                data: responseData,
-                contentType: contentType || this.getMimeType(proxyData.url),
-                statusCode: response.status,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': 'true',
-                    'Access-Control-Expose-Headers': 'Content-Type,Content-Range,Accept-Ranges,Cache-Control,Content-Length',
-
-                    'Accept-Ranges': 'bytes',
-                    'Cache-Control': response.headers['cache-control'] || 'public, max-age=3600',
-
-                    'Content-Length': response.headers['content-length'],
-                    'Content-Range': response.headers['content-range'],
-                },
-            }
+            // Handle buffered request for small files (existing logic)
+            return await this.handleBufferedRequest(proxyData)
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 if (error.response) {
@@ -75,6 +56,99 @@ export class ProxyService {
     }
 
     /**
+     * Determine if a URL should be streamed based on file type
+     */
+    private shouldStream(url: string): boolean {
+        // Stream large video files
+        return url.includes('.mp4') || url.includes('.mkv') || url.includes('.webm') || url.includes('.avi') || url.includes('.mov')
+    }
+
+    /**
+     * Handle streaming request for large files
+     */
+    private async handleStreamingRequest(proxyData: ProxyData): Promise<StreamingProxyResponse> {
+        const response: AxiosResponse<Readable> = await axios.get(proxyData.url, {
+            headers: {
+                ...proxyData.headers,
+                'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
+            },
+            responseType: 'stream',
+            timeout: 30000,
+            maxRedirects: 5,
+            validateStatus: (status) => status < 500,
+        })
+
+        const contentType = response.headers['content-type'] || this.getMimeType(proxyData.url)
+
+        // Build headers object
+        const headers: Record<string, string> = {
+            'Content-Disposition': 'inline',
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': response.headers['cache-control'] || 'public, max-age=7200',
+        }
+
+        // Add optional headers if present
+        if (response.headers['content-length']) {
+            headers['Content-Length'] = response.headers['content-length']
+        }
+        if (response.headers['content-range']) {
+            headers['Content-Range'] = response.headers['content-range']
+        }
+        if (response.headers['last-modified']) {
+            headers['Last-Modified'] = response.headers['last-modified']
+        }
+        if (response.headers['etag']) {
+            headers['ETag'] = response.headers['etag']
+        }
+
+        return {
+            stream: response.data,
+            contentType,
+            statusCode: response.status,
+            headers,
+        }
+    }
+
+    /**
+     * Handle buffered request for small files (original implementation)
+     */
+    private async handleBufferedRequest(proxyData: ProxyData): Promise<ProxyResponse> {
+        const response: AxiosResponse<Buffer> = await axios.get(proxyData.url, {
+            headers: {
+                ...proxyData.headers,
+                'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
+            },
+            responseType: 'arraybuffer',
+            timeout: 30000,
+            maxRedirects: 5,
+            validateStatus: (status) => status < 500,
+        })
+
+        // Check if we need to rewrite manifest files
+        const contentType = response.headers['content-type'] || ''
+        let responseData = response.data
+
+        if (this.isManifestFile(contentType, proxyData.url)) {
+            const manifestContent = response.data.toString('utf-8')
+            const rewrittenContent = this.rewriteManifest(manifestContent, proxyData.url, proxyData.headers)
+            responseData = Buffer.from(rewrittenContent, 'utf-8')
+        }
+
+        return {
+            data: responseData,
+            contentType: contentType || this.getMimeType(proxyData.url),
+            statusCode: response.status,
+            headers: {
+                'Content-Disposition': 'inline',
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': response.headers['cache-control'] || 'public, max-age=7200',
+                ...(response.headers['content-length'] && { 'Content-Length': response.headers['content-length'] }),
+                ...(response.headers['content-range'] && { 'Content-Range': response.headers['content-range'] }),
+            },
+        }
+    }
+
+    /**
      * Determine MIME type from URL or content
      */
     private getMimeType(url: string): string {
@@ -83,9 +157,13 @@ export class ProxyService {
         if (url.match(/\.ass|\.ssa$/i)) return 'text/plain'
         if (url.match(/\.m3u8$/i)) return 'application/x-mpegURL'
         if (url.match(/\.mpd$/i)) return 'application/dash+xml'
-        if (url.match(/\.(mp4|mkv|webm|avi|mov)$/i)) return 'video/mp4'
+        if (url.match(/\.mp4$/i)) return 'video/mp4'
+        if (url.match(/\.mkv$/i)) return 'video/x-matroska'
+        if (url.match(/\.webm$/i)) return 'video/webm'
+        if (url.match(/\.avi$/i)) return 'video/x-msvideo'
+        if (url.match(/\.mov$/i)) return 'video/quicktime'
         if (url.match(/\.ts$/i)) return 'video/mp2t'
-        return 'application/x-mpegURL'
+        return 'application/octet-stream'
     }
 
     /**
