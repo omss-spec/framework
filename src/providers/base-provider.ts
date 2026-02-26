@@ -84,6 +84,7 @@ export abstract class BaseProvider {
     abstract readonly capabilities: ProviderCapabilities
     private static globalProxyConfig: {
         knownThirdPartyProxies: Record<string, RegExp[]>
+        streamPatterns: RegExp[]
     } | null = null
 
     /**
