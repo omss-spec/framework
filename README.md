@@ -108,6 +108,7 @@ const server = new OMSSServer({
             'madplay.site': [/\/api\/[^/]+\/proxy\?url=(.+)$/],
             '*': [/\/proxy\/(.+)$/, /\/m3u8-proxy\?url=(.+?)(&|$)/],
         },
+        streamPatterns: [/^https?:\/\/.+\.(mp4)(\?.*)?$/], // treat direct mp4 links as streams that need proxying. You can also add custom domains that should be streamed through the proxy.
     },
     // You can override the default cors settings, by passing your own fastify cors options here. By default, it allows all origins.
     /*
@@ -201,6 +202,7 @@ interface OMSSConfig {
     // Proxy configuration
     proxyConfig?: {
         knownThirdPartyProxies: Record<string, RegExp[]> // for this, see the documentation in docs/third-party-pattern-config.md
+        streamPatterns: RegExp[] // Optional: Custom patterns to identify streaming URLs that need proxying
     }
 
     // Optional: CORS configuration (overrides default)
@@ -236,6 +238,7 @@ const server = new OMSSServer({
     },
     proxyConfig: {
         knownThirdPartyProxies: {}, // for this, see the documentation in docs/third-party-pattern-config.md
+        streamPatterns: [/^https?:\/\/.+\.(mp4)(\?.*)?$/], // treat direct mp4 links as streams that need proxying. You can also add custom domains that should be streamed through the proxy.
     },
 })
 ```
@@ -267,6 +270,7 @@ const server = new OMSSServer({
     },
     proxyConfig: {
         knownThirdPartyProxies: {}, // for this, see the documentation in docs/third-party-pattern-config.md
+        streamPatterns: [/^https?:\/\/.+\.(mp4)(\?.*)?$/], // treat direct mp4 links as streams that need proxying. You can also add custom domains that should be streamed through the proxy.
     },
     cors: {
         origin: 'https://myapp.com',
@@ -300,6 +304,7 @@ const server = new OMSSServer({
     },
     proxyConfig: {
         knownThirdPartyProxies: {}, // for this, see the documentation in docs/third-party-pattern-config.md
+        streamPatterns: [/^https?:\/\/.+\.(mp4)(\?.*)?$/], // treat direct mp4 links as streams that need proxying. You can also add custom domains that should be streamed through the proxy.
     },
     cors: {
         origin: 'https://myapp.com',

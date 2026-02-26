@@ -83,7 +83,7 @@ export class OMSSServer {
 
         // Initialize services
         this.sourceService = new SourceService(this.registry, this.cache, this.tmdbService, config.cache?.ttl)
-        this.proxyService = new ProxyService()
+        this.proxyService = new ProxyService(config.proxyConfig?.streamPatterns || [])
         this.healthService = new HealthService(config, this.registry)
 
         // Initialize controllers

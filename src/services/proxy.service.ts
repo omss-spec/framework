@@ -25,6 +25,36 @@ export function isStreamingResponse(response: ProxyResult): response is Streamin
 
 export class ProxyService {
     private isProd: boolean = process.env.NODE_ENV === 'production'
+    private streamPatterns: RegExp[]
+
+        constructor(streamPatterns?: RegExp[]) {
+        // Default patterns if none provided
+        const defaultPatterns = [
+            '\\.mp4($|\\?)',
+            '\\.mkv($|\\?)',
+            '\\.webm($|\\?)',
+            '\\.avi($|\\?)',
+            '\\.mov($|\\?)'
+        ]
+        
+        const patterns = streamPatterns || defaultPatterns
+        
+        // Compile regex patterns
+        this.streamPatterns = patterns.map(pattern => {
+            try {
+                return new RegExp(pattern, 'i')  // case-insensitive
+            } catch (error) {
+                console.warn(`[ProxyService] Invalid regex pattern: ${pattern}`, error)
+                return null
+            }
+        }).filter((pattern): pattern is RegExp => pattern !== null)
+        
+        if (this.streamPatterns.length === 0) {
+            console.warn('[ProxyService] No valid stream patterns configured, using defaults')
+            this.streamPatterns = defaultPatterns.map(p => new RegExp(p, 'i'))
+        }
+    }
+
     /**
      * Proxy a request to an upstream provider
      * Returns either buffered response or streaming response based on file type
@@ -59,8 +89,7 @@ export class ProxyService {
      * Determine if a URL should be streamed based on file type
      */
     private shouldStream(url: string): boolean {
-        // Stream large video files
-        return url.includes('.mp4') || url.includes('.mkv') || url.includes('.webm') || url.includes('.avi') || url.includes('.mov')
+        return this.streamPatterns.some(pattern => pattern.test(url))
     }
 
     /**
