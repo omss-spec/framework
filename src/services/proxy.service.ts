@@ -20,39 +20,31 @@ export interface StreamingProxyResponse {
 export type ProxyResult = ProxyResponse | StreamingProxyResponse
 
 export function isStreamingResponse(response: ProxyResult): response is StreamingProxyResponse {
-    return 'stream' in response && response.stream instanceof Readable
+    return 'stream' in response && true
 }
 
 export class ProxyService {
     private isProd: boolean = process.env.NODE_ENV === 'production'
     private streamPatterns: RegExp[]
 
-        constructor(streamPatterns?: RegExp[]) {
+    constructor(streamPatterns?: RegExp[]) {
         // Default patterns if none provided
-        const defaultPatterns = [
-            '\\.mp4($|\\?)',
-            '\\.mkv($|\\?)',
-            '\\.webm($|\\?)',
-            '\\.avi($|\\?)',
-            '\\.mov($|\\?)'
-        ]
-        
-        const patterns = streamPatterns || defaultPatterns
-        
+        const defaultPatterns: RegExp[] = [/\\.mp4($|\\?)/, /\\.mkv($|\\?)/, /\\.webm($|\\?)/, /\\.avi($|\\?)/, /\\.mov($|\\?)/]
+
+        // Ensure default patterns are included when no streamPatterns are provided
+        const patterns = streamPatterns ? [...streamPatterns, ...defaultPatterns] : [...defaultPatterns]
+
         // Compile regex patterns
-        this.streamPatterns = patterns.map(pattern => {
-            try {
-                return new RegExp(pattern, 'i')  // case-insensitive
-            } catch (error) {
-                console.warn(`[ProxyService] Invalid regex pattern: ${pattern}`, error)
-                return null
-            }
-        }).filter((pattern): pattern is RegExp => pattern !== null)
-        
-        if (this.streamPatterns.length === 0) {
-            console.warn('[ProxyService] No valid stream patterns configured, using defaults')
-            this.streamPatterns = defaultPatterns.map(p => new RegExp(p, 'i'))
-        }
+        this.streamPatterns = patterns
+            .map((pattern) => {
+                try {
+                    return new RegExp(pattern, 'i') // case-insensitive
+                } catch (error) {
+                    console.warn(`[ProxyService] Invalid regex pattern: ${pattern}`, error)
+                    return null
+                }
+            })
+            .filter((pattern): pattern is RegExp => pattern !== null)
     }
 
     /**
@@ -70,7 +62,7 @@ export class ProxyService {
                 return await this.handleStreamingRequest(proxyData)
             }
 
-            // Handle buffered request for small files (existing logic)
+            // Handle buffered request for small files
             return await this.handleBufferedRequest(proxyData)
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -96,11 +88,16 @@ export class ProxyService {
      * Handle streaming request for large files
      */
     private async handleStreamingRequest(proxyData: ProxyData): Promise<StreamingProxyResponse> {
+        const rangeHeader = proxyData.headers?.['range'] || proxyData.headers?.['Range']
+
+        const axiosHeaders = {
+            ...proxyData.headers,
+            'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
+            ...(rangeHeader && { Range: rangeHeader }),
+        }
+
         const response: AxiosResponse<Readable> = await axios.get(proxyData.url, {
-            headers: {
-                ...proxyData.headers,
-                'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
-            },
+            headers: axiosHeaders,
             responseType: 'stream',
             timeout: 30000,
             maxRedirects: 5,
@@ -111,9 +108,14 @@ export class ProxyService {
 
         // Build headers object
         const headers: Record<string, string> = {
-            'Content-Disposition': 'inline',
-            'Accept-Ranges': 'bytes',
+            'Content-Disposition': 'inline; filename="stream"',
             'Cache-Control': response.headers['cache-control'] || 'public, max-age=7200',
+            'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length, Content-Range, Last-Modified, ETag',
+            ...(response.headers['accept-ranges'] || response.headers['accept-range']
+                ? {
+                      'Accept-Ranges': response.headers['accept-ranges'] || response.headers['accept-range'] || 'bytes',
+                  }
+                : {}),
         }
 
         // Add optional headers if present
@@ -317,8 +319,7 @@ export class ProxyService {
 
         // Relative URLs (files with extensions or paths)
         // Common patterns: segment.ts, playlist.m3u8, path/to/file.mp4
-        if (
-            line.includes('.ts') ||
+        return line.includes('.ts') ||
             line.includes('.m3u8') ||
             line.includes('.mp4') ||
             line.includes('.m4s') ||
@@ -326,12 +327,8 @@ export class ProxyService {
             line.includes('.vtt') ||
             line.includes('.key') ||
             line.includes('/') ||
-            /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+/.test(line) // filename.extension pattern
-        ) {
-            return true
-        }
+            /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+/.test(line);
 
-        return false
     }
 
     /**
@@ -365,7 +362,6 @@ export class ProxyService {
             this.isProd ?? console.warn(`[ProxyService] Failed to resolve URL: ${targetUrl} against ${baseUrl}`)
             // Fallback: try to construct a valid URL
             try {
-                const baseUrlObj = new URL(baseUrl)
                 const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
                 return baseDir + targetUrl
             } catch {
@@ -379,14 +375,6 @@ export class ProxyService {
      * ALWAYS includes headers from the original request
      */
     private createProxyUrl(url: string, headers?: Record<string, string>): string {
-        const data = JSON.stringify({ url, headers })
-        return `/v1/proxy?data=${encodeURIComponent(data)}`
-    }
-
-    /**
-     * Encode a URL for proxy usage (helper for providers)
-     */
-    static encodeProxyUrl(url: string, headers?: Record<string, string>): string {
         const data = JSON.stringify({ url, headers })
         return `/v1/proxy?data=${encodeURIComponent(data)}`
     }

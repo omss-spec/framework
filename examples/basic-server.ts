@@ -1,4 +1,4 @@
-import { OMSSServer } from '../src/index.js' // replace this in your own implementation with '@omss/framework'
+import { OMSSServer } from '../src' // replace this in your own implementation with '@omss/framework'
 import 'dotenv/config'
 
 async function main() {
@@ -36,8 +36,17 @@ async function main() {
             knownThirdPartyProxies: {
                 'hls1.vid1.site': [/\/proxy\/(.+)$/],
                 'madplay.site': [/\/api\/[^/]+\/proxy\?url=(.+)$/],
-                '*': [/\/proxy\/(.+)$/, /\/m3u8-proxy\?url=(.+?)(&|$)/, ],
+                '*': [/\/proxy\/(.+)$/, /\/m3u8-proxy\?url=(.+?)(&|$)/],
             },
+            streamPatterns: [
+                /\.mp4($|\?)/i,
+                /\.mkv($|\?)/i,
+                /\.webm($|\?)/i,
+                /\.avi($|\?)/i,
+                /\.mov($|\?)/i,
+                // here you could add more patterns for other video formats
+                // or downloader domains (like pixeldrain, where the video format is not in the url)
+            ],
         },
 
         // You can override the default cors settings, by passing your own fastify cors options here. By default, it allows all origins.

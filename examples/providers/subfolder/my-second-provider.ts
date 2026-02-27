@@ -22,9 +22,6 @@ export class ExampleProvider extends BaseProvider {
             });
             */
             // Your implementation here
-
-            await setTimeout(() => {}, 1000000);
-
             return {
                 sources: [
                     {
@@ -40,7 +37,7 @@ export class ExampleProvider extends BaseProvider {
                 ],
                 subtitles: [],
                 diagnostics: [],
-            };
+            }
         } catch (error) {
             return {
                 sources: [],
