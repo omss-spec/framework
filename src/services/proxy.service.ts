@@ -81,7 +81,7 @@ export class ProxyService {
      * Determine if a URL should be streamed based on file type
      */
     private shouldStream(url: string): boolean {
-        return this.streamPatterns.some(pattern => pattern.test(url))
+        return this.streamPatterns.some((pattern) => pattern.test(url))
     }
 
     /**
@@ -222,14 +222,10 @@ export class ProxyService {
      * Check if the response is a manifest file that needs rewriting
      */
     private isManifestFile(contentType: string, url: string): boolean {
-        return (
-            contentType.includes('application/vnd.apple.mpegurl') ||
-            contentType.includes('application/x-mpegurl') ||
-            contentType.includes('application/dash+xml') ||
-            (contentType.includes('text/plain') && url.includes('.m3u8')) ||
-            url.endsWith('.m3u8') ||
-            url.endsWith('.mpd')
-        )
+        const TEXT_BASED_MIME_REGEX = /^(text\/.*|application\/(.*\+xml|.*\+json|json|xml|javascript|yaml|x-yaml|x-www-form-urlencoded))(;.*)?$/i
+        const isTextLike = TEXT_BASED_MIME_REGEX.test(contentType)
+
+        return isTextLike || (/application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml)/i.test(contentType) || /\.m3u8(\?.*)?$/.test(url) || /\.mpd(\?.*)?$/.test(url))
     }
 
     /**
@@ -319,7 +315,8 @@ export class ProxyService {
 
         // Relative URLs (files with extensions or paths)
         // Common patterns: segment.ts, playlist.m3u8, path/to/file.mp4
-        return line.includes('.ts') ||
+        return (
+            line.includes('.ts') ||
             line.includes('.m3u8') ||
             line.includes('.mp4') ||
             line.includes('.m4s') ||
@@ -327,8 +324,8 @@ export class ProxyService {
             line.includes('.vtt') ||
             line.includes('.key') ||
             line.includes('/') ||
-            /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+/.test(line);
-
+            /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+/.test(line)
+        )
     }
 
     /**
