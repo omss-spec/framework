@@ -25,10 +25,10 @@ export class ProxyController {
         }
 
         // Decode and add proxyData with request headers (used for 'Ranges' in streams)
-        let proxyDataRaw: ProxyData;
+        let proxyDataRaw: ProxyData
         try {
-            const decoded = decodeURIComponent(data);
-            proxyDataRaw = JSON.parse(decoded) as ProxyData;
+            const decoded = decodeURIComponent(data)
+            proxyDataRaw = JSON.parse(decoded) as ProxyData
         } catch (error) {
             return reply.code(400).send({
                 error: {
@@ -36,7 +36,7 @@ export class ProxyController {
                     message: 'Invalid data parameter format',
                 },
                 traceId: request.id,
-            });
+            })
         }
 
         // Inject request headers
@@ -48,20 +48,17 @@ export class ProxyController {
                 // Forward range headers from client request
                 ...(request.headers.range && { range: request.headers.range }),
                 ...(request.headers.Range && { Range: request.headers.Range }),
-            }
-        };
+            },
+        }
 
         // Re-encode with enhanced data
-        const enhancedData = encodeURIComponent(JSON.stringify(proxyData));
+        const enhancedData = encodeURIComponent(JSON.stringify(proxyData))
 
-        const response = await this.proxyService.proxyRequest(enhancedData);
+        const response = await this.proxyService.proxyRequest(enhancedData)
 
         // Handle streaming response
         if (isStreamingResponse(response)) {
-            reply
-                .code(response.statusCode)
-                .headers(response.headers)
-                .type(response.contentType)
+            reply.code(response.statusCode).headers(response.headers).type(response.contentType)
 
             return reply.send(response.stream)
         }

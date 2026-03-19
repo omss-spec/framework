@@ -225,7 +225,7 @@ export class ProxyService {
         const TEXT_BASED_MIME_REGEX = /^(text\/.*|application\/(.*\+xml|.*\+json|json|xml|javascript|yaml|x-yaml|x-www-form-urlencoded))(;.*)?$/i
         const isTextLike = TEXT_BASED_MIME_REGEX.test(contentType)
 
-        return isTextLike || (/application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml)/i.test(contentType) || /\.m3u8(\?.*)?$/.test(url) || /\.mpd(\?.*)?$/.test(url))
+        return isTextLike || /application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml)/i.test(contentType) || /\.m3u8(\?.*)?$/.test(url) || /\.mpd(\?.*)?$/.test(url)
     }
 
     /**

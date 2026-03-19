@@ -15,9 +15,9 @@ export interface OMSSConfig {
         cacheTTL?: number
     }
     proxyConfig?: {
-        knownThirdPartyProxies: Record<string, RegExp[]>;
-        streamPatterns: RegExp[];
-    };
+        knownThirdPartyProxies: Record<string, RegExp[]>
+        streamPatterns: RegExp[]
+    }
     note?: string
     cors?: FastifyCorsOptions
 }

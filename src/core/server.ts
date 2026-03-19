@@ -102,13 +102,16 @@ export class OMSSServer {
      */
     private setupMiddleware(customCorsOptions?: FastifyCorsOptions): void {
         // CORS
-        this.app.register(cors, customCorsOptions || {
-            origin: '*',
-            methods: ['GET', 'OPTIONS', 'HEAD'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Accept'],
-            exposedHeaders: ['Content-Length', 'Content-Type', 'Content-Range', 'Accept-Ranges'],
-            credentials: false
-        })
+        this.app.register(
+            cors,
+            customCorsOptions || {
+                origin: '*',
+                methods: ['GET', 'OPTIONS', 'HEAD'],
+                allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Accept'],
+                exposedHeaders: ['Content-Length', 'Content-Type', 'Content-Range', 'Accept-Ranges'],
+                credentials: false,
+            }
+        )
 
         // Request logging
         this.app.addHook('onRequest', requestLogger)

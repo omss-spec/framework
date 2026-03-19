@@ -114,7 +114,6 @@ export abstract class BaseProvider {
         BaseProvider.proxyConfig = config
     }
 
-
     static setGlobalProxyConfig(config: NonNullable<OMSSConfig['proxyConfig']>): void {
         BaseProvider.globalProxyConfig = config
     }
