@@ -75,7 +75,6 @@ export class TMDBService {
         try {
             const response = await axios.get<TMDBMovieResponse>(`${this.baseUrl}/movie/${tmdbId}`, {
                 params: { api_key: this.apiKey },
-                timeout: 5000,
             })
 
             const movie = response.data

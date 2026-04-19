@@ -49,7 +49,7 @@ export class SourceService {
 
         // Throw error if no sources found
         if (response.sources.length === 0) {
-            throw OMSSErrors.noSourcesAvailable(tmdbId, this.registry.count)
+            throw OMSSErrors.noSourcesAvailable(tmdbId, this.registry.getEnabledProviders().length)
         }
 
         // Store responseId mapping
@@ -95,7 +95,7 @@ export class SourceService {
 
         // Throw error if no sources found
         if (response.sources.length === 0) {
-            throw OMSSErrors.noSourcesAvailable(`${tmdbId}/S${season}E${episode}`, this.registry.count)
+            throw OMSSErrors.noSourcesAvailable(`${tmdbId}/S${season}E${episode}`, this.registry.getEnabledProviders().length)
         }
 
         // Store responseId mapping
