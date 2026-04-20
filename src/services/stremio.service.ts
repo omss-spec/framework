@@ -1,4 +1,4 @@
-import { BaseProvider } from 'src/providers/base-provider.js'
+import { BaseProvider } from '../providers/base-provider.js'
 import { ProviderMediaObject, ProviderResult, Source, Subtitle } from '../core/types.js'
 import type { Diagnostic, StremioAddonConfig } from '../core/types.js'
 import { ProxyService } from './proxy.service.js'

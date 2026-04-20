@@ -6,7 +6,7 @@ import { createCacheService, CacheService } from './cache.js'
 import { SourceService } from '../services/source.service.js'
 import { ProxyService } from '../services/proxy.service.js'
 import { HealthService } from '../services/health.service.js'
-import { StremioService } from 'src/services/stremio.service.js'
+import { StremioService } from '../services/stremio.service.js'
 import { ContentController } from '../controllers/content.controller.js'
 import { ProxyController } from '../controllers/proxy.controller.js'
 import { HealthController } from '../controllers/health.controller.js'
@@ -15,7 +15,7 @@ import { requestLogger } from '../middleware/logger.js'
 import { validateContentType } from '../middleware/validation.js'
 import { TMDBService } from '../services/tmdb.service.js'
 import { v4 as uuidv4 } from 'uuid'
-import { StremioController } from 'src/controllers/stremio.controller.js'
+import { StremioController } from '../controllers/stremio.controller.js'
 
 export class OMSSServer {
     private app: FastifyInstance

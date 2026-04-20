@@ -2,7 +2,7 @@ import { BaseProvider } from './base-provider.js'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { pathToFileURL } from 'url'
-import { OMSSConfig } from 'src/core/types.js'
+import { OMSSConfig } from '../core/types.js'
 
 export interface ProviderRegistryConfig {
     proxyBaseUrl?: string
