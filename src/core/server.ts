@@ -14,6 +14,7 @@ import { requestLogger } from '../middleware/logger.js'
 import { validateContentType } from '../middleware/validation.js'
 import { TMDBService } from '../services/tmdb.service.js'
 import { v4 as uuidv4 } from 'uuid'
+import { StremioController } from 'src/controllers/stremio.controller.js'
 
 export class OMSSServer {
     private app: FastifyInstance
@@ -31,6 +32,7 @@ export class OMSSServer {
     private contentController: ContentController
     private proxyController: ProxyController
     private healthController: HealthController
+    private stremioController?: StremioController
 
     constructor(config: OMSSConfig, registry?: ProviderRegistry) {
         this.config = config
@@ -91,6 +93,14 @@ export class OMSSServer {
         this.proxyController = new ProxyController(this.proxyService)
         this.healthController = new HealthController(this.healthService)
 
+        if (config.stremioAddon) {
+            this.stremioController = new StremioController(
+                this.sourceService,
+                config,
+                this.tmdbService
+            )
+        }
+
         // Setup middleware and routes
         this.setupMiddleware(config.cors)
         this.setupRoutes()
@@ -140,6 +150,12 @@ export class OMSSServer {
         // Proxy endpoint
         this.app.get('/v1/proxy', this.proxyController.proxy.bind(this.proxyController))
 
+        // Stremio addon endpoint
+        if (this.stremioController) {
+            this.app.get('/stremio/manifest.json', this.stremioController.getManifest.bind(this.stremioController))
+            this.app.get('/stremio/stream/:type/:id', this.stremioController.getStream.bind(this.stremioController))
+        }
+
         // 404 handler
         this.app.setNotFoundHandler((request, reply) => {
             reply.code(404).send({
@@ -180,8 +196,9 @@ export class OMSSServer {
 ║  Name:       ${this.config.name.padEnd(42)}║
 ║  Version:    ${this.config.version.padEnd(42)}║
 ║  Port:       ${port.toString().padEnd(42)}║
-║  Providers:  ${this.registry.count.toString().padEnd(42)}║
+║  Providers:  ${this.registry ? this.registry['providers'].size.toString().padEnd(42) : '0'.padEnd(42)}║
 ║  Cache:      ${(this.config.cache?.type || 'memory').padEnd(42)}║
+║  Stremio:    ${(this.config.stremioAddon ? 'Enabled' : 'Disabled').padEnd(42)}║
 ╠════════════════════════════════════════════════════════╣
 ║  Endpoints:                                            ║
 ║    GET  /                        - Health check        ║
@@ -189,8 +206,12 @@ export class OMSSServer {
 ║    GET  /v1/tv/:id/seasons/:s/episodes/:e              ║
 ║                                  - TV sources          ║
 ║    GET  /v1/proxy?data=...       - Proxy endpoint      ║
-║    GET  /v1/refresh/:responseId  - Refresh cache       ║
-╚════════════════════════════════════════════════════════╝
+║    GET  /v1/refresh/:responseId  - Refresh cache       ║`)
+            if (this.config.stremioAddon) {
+                console.log(`║                                                        ║
+║    GET  /stremio/manifest.json    - Stremio manifest   ║`)
+            }
+            console.log(`╚════════════════════════════════════════════════════════╝
 
 🚀 Server listening at http://${host}:${port}
       `)

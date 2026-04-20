@@ -303,4 +303,38 @@ export class TMDBService {
             return undefined
         }
     }
+
+    /**
+     * Find a TMDB ID from an IMDb ID using the TMDB /find endpoint.
+     */
+    async findTmdbIdByImdbId(imdbId: string, type: 'movie' | 'tv'): Promise<string | undefined> {
+        const cacheKey = `tmdb:find:${type}:${imdbId}`
+
+        const cached = await this.cache.get<string>(cacheKey)
+        if (cached) return cached
+
+        try {
+            const response = await axios.get(`${this.baseUrl}/find/${imdbId}`, {
+                params: {
+                    api_key: this.apiKey,
+                    external_source: 'imdb_id',
+                },
+                timeout: 5000,
+            })
+
+            const results: any[] = type === 'movie' ? response.data.movie_results : response.data.tv_results
+
+            if (!results || results.length === 0) {
+                await this.cache.set(cacheKey, '', 3600)
+                return undefined
+            }
+
+            const tmdbId = String(results[0].id)
+            await this.cache.set(cacheKey, tmdbId, this.cacheTTL)
+            return tmdbId
+        } catch (error) {
+            console.error('[TMDBService] Failed to find TMDB ID by IMDb ID:', error)
+            return undefined
+        }
+    }
 }

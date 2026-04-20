@@ -20,6 +20,7 @@ export interface OMSSConfig {
     }
     note?: string
     cors?: FastifyCorsOptions
+    stremioAddon?: boolean
 }
 
 export interface CacheConfig {

@@ -26,6 +26,8 @@ async function main() {
             },
         },
 
+        stremioAddon: true, // Enable Stremio addon endpoints
+
         // TMDB (required)
         tmdb: {
             apiKey: process.env.TMDB_API_KEY!,

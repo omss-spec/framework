@@ -27,7 +27,7 @@ export class ExampleProvider extends BaseProvider {
                     {
                         url: this.createProxyUrl('https://example.com/movie/' + media.tmdbId),
                         type: 'hls',
-                        quality: 'HD',
+                        quality: '4K',
                         audioTracks: [{ language: 'en', label: 'English SDH' }],
                         provider: {
                             id: this.id,
