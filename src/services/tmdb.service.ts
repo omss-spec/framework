@@ -256,11 +256,11 @@ export class TMDBService {
     async getMediaObject(type: 'movie' | 'tv', tmdbId: string, season?: number, episode?: number): Promise<ProviderMediaObject> {
         if (type === 'movie') {
             const validation = await this.validateMovie(tmdbId)
-            
+
             return {
                 type: 'movie',
                 tmdbId,
-                imdbId: await this.getImdbId(tmdbId, 'movie') || '',
+                imdbId: (await this.getImdbId(tmdbId, 'movie')) || '',
                 title: validation.title ?? '',
                 releaseYear: validation.releaseDate ? new Date(validation.releaseDate).getFullYear().toString() : '',
             }
@@ -270,7 +270,7 @@ export class TMDBService {
             return {
                 type: 'tv',
                 tmdbId,
-                imdbId: await this.getImdbId(tmdbId, 'tv') || '',
+                imdbId: (await this.getImdbId(tmdbId, 'tv')) || '',
                 s: season,
                 e: episode,
                 releaseYear: validation.releaseDate ? new Date(validation.releaseDate).getFullYear().toString() : '',

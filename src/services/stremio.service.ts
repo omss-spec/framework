@@ -135,10 +135,12 @@ export class StremioService {
                     url,
                     type: this.inferSourceType(stream),
                     quality: this.inferQuality(stream),
-                    audioTracks: [{
-                        label: "Unknown (fallback: Stremio Addons do not have a standard way to specify audio track info)",
-                        language: "und",
-                    }],
+                    audioTracks: [
+                        {
+                            label: 'Unknown (fallback: Stremio Addons do not have a standard way to specify audio track info)',
+                            language: 'und',
+                        },
+                    ],
                     provider: {
                         id: `stremio:${r.addonId}`,
                         name: `Stremio ${r.addonId}`,

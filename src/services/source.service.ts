@@ -43,22 +43,26 @@ export class SourceService {
         const media = await this.tmdbService.getMediaObject('movie', tmdbId)
 
         // Try to get IMDB ID
-        media.imdbId = await this.tmdbService.getImdbId(tmdbId, 'movie') ?? ''
+        media.imdbId = (await this.tmdbService.getImdbId(tmdbId, 'movie')) ?? ''
 
         // Fetch from providers and Stremio addons concurrently
         const [providerResults, stremioResult] = await Promise.all([
             this.fetchFromProviders('movie', media),
             this.stremioService?.hasEnabledAddons()
-                ? this.stremioService.getMovieSources(media).catch((err): ProviderResult => ({
-                    sources: [],
-                    subtitles: [],
-                    diagnostics: [{
-                        code: 'PROVIDER_ERROR',
-                        message: `Stremio integration failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
-                        field: '',
-                        severity: 'error',
-                    }],
-                }))
+                ? this.stremioService.getMovieSources(media).catch(
+                      (err): ProviderResult => ({
+                          sources: [],
+                          subtitles: [],
+                          diagnostics: [
+                              {
+                                  code: 'PROVIDER_ERROR',
+                                  message: `Stremio integration failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                                  field: '',
+                                  severity: 'error',
+                              },
+                          ],
+                      })
+                  )
                 : Promise.resolve(null),
         ])
 
@@ -107,22 +111,26 @@ export class SourceService {
         const media = await this.tmdbService.getMediaObject('tv', tmdbId, season, episode)
 
         // Try to get IMDB ID
-        media.imdbId = await this.tmdbService.getImdbId(tmdbId, 'tv') ?? ''
+        media.imdbId = (await this.tmdbService.getImdbId(tmdbId, 'tv')) ?? ''
 
         // Fetch from providers and Stremio addons concurrently
         const [providerResults, stremioResult] = await Promise.all([
             this.fetchFromProviders('tv', media),
             this.stremioService?.hasEnabledAddons()
-                ? this.stremioService.getTVSources(media).catch((err): ProviderResult => ({
-                    sources: [],
-                    subtitles: [],
-                    diagnostics: [{
-                        code: 'PROVIDER_ERROR',
-                        message: `Stremio integration failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
-                        field: '',
-                        severity: 'error',
-                    }],
-                }))
+                ? this.stremioService.getTVSources(media).catch(
+                      (err): ProviderResult => ({
+                          sources: [],
+                          subtitles: [],
+                          diagnostics: [
+                              {
+                                  code: 'PROVIDER_ERROR',
+                                  message: `Stremio integration failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                                  field: '',
+                                  severity: 'error',
+                              },
+                          ],
+                      })
+                  )
                 : Promise.resolve(null),
         ])
 

@@ -104,7 +104,7 @@ export class ProxyService {
             validateStatus: (status) => status < 500,
         })
 
-        const contentType = response.headers['content-type'] as string || this.getMimeType(proxyData.url)
+        const contentType = (response.headers['content-type'] as string) || this.getMimeType(proxyData.url)
 
         // Build headers object
         const headers: Record<string, string> = {
@@ -158,7 +158,7 @@ export class ProxyService {
         })
 
         // Check if we need to rewrite manifest files
-        const contentType = response.headers['content-type'] as string || ''
+        const contentType = (response.headers['content-type'] as string) || ''
         let responseData = response.data
 
         if (this.isManifestFile(contentType, proxyData.url)) {

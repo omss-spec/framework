@@ -140,23 +140,23 @@ export class StremioController {
                 omssResponse = await this.sourceService.getMovieSources(tmdbId)
             } else if (type === 'series' || type === 'tv') {
                 if (season === undefined || episode === undefined || !Number.isFinite(season) || !Number.isFinite(episode)) {
-            return reply.code(400).send({
-                error: {
-                    code: 'INVALID_PARAMETER',
-                    message: 'An error occurred while processing the request',
-                },
-                traceId: request.id,
-            })
+                    return reply.code(400).send({
+                        error: {
+                            code: 'INVALID_PARAMETER',
+                            message: 'An error occurred while processing the request',
+                        },
+                        traceId: request.id,
+                    })
                 }
                 omssResponse = await this.sourceService.getTVSources(tmdbId, season, episode)
             } else {
-            return reply.code(400).send({
-                error: {
-                    code: 'INVALID_PARAMETER',
-                    message: 'An error occurred while processing the request',
-                },
-                traceId: request.id,
-            })
+                return reply.code(400).send({
+                    error: {
+                        code: 'INVALID_PARAMETER',
+                        message: 'An error occurred while processing the request',
+                    },
+                    traceId: request.id,
+                })
             }
 
             const streams: StremioStream[] = (omssResponse.sources || []).map((source: Source, index: number): StremioStream => {
@@ -167,10 +167,7 @@ export class StremioController {
                 const audioSummary = source.audioTracks.length > 0 ? source.audioTracks.map((t) => t.label || t.language.toUpperCase()).join(', ') : null
 
                 // Multi-line description rendered by Stremio below the name
-                const descLines: string[] = [
-                    `📡 Provider: ${source.provider.name}`,
-                
-                ]
+                const descLines: string[] = [`📡 Provider: ${source.provider.name}`]
 
                 if (audioSummary) {
                     descLines.push(`🔊 ${audioSummary}`)

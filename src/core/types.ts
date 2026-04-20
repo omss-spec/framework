@@ -35,17 +35,16 @@ export interface CacheConfig {
     }
 }
 
-
 export interface StremioConfig {
     enableNativeAddon: boolean
     stremioAddons: StremioAddonConfig[]
 }
 
 export interface StremioAddonConfig {
-    id: string;
-    url: string;
-    enabled?: boolean;
-    timeoutMs?: number;
+    id: string
+    url: string
+    enabled?: boolean
+    timeoutMs?: number
 }
 
 // OMSS Response Types
