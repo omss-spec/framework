@@ -169,7 +169,7 @@ export abstract class BaseProvider {
     /**
      * Get proxy base URL
      */
-    private static getProxyBaseUrl(): string {
+    public static getProxyBaseUrl(): string {
         const config = BaseProvider.proxyConfig
 
         // If baseUrl is explicitly set, use it
@@ -212,7 +212,7 @@ export abstract class BaseProvider {
     /**
      * Helper: Create proxy URL with full server address
      */
-    protected createProxyUrl(url: string, headers?: Record<string, string>): string {
+    public createProxyUrl(url: string, headers?: Record<string, string>): string {
         const cleanUrl = this.cleanThirdPartyProxy(url)
         const data = JSON.stringify({ url: cleanUrl, headers })
         const encodedData = encodeURIComponent(data)

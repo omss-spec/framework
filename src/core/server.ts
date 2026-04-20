@@ -6,6 +6,7 @@ import { createCacheService, CacheService } from './cache.js'
 import { SourceService } from '../services/source.service.js'
 import { ProxyService } from '../services/proxy.service.js'
 import { HealthService } from '../services/health.service.js'
+import { StremioService } from 'src/services/stremio.service.js'
 import { ContentController } from '../controllers/content.controller.js'
 import { ProxyController } from '../controllers/proxy.controller.js'
 import { HealthController } from '../controllers/health.controller.js'
@@ -27,6 +28,7 @@ export class OMSSServer {
     private proxyService: ProxyService
     private healthService: HealthService
     private tmdbService: TMDBService
+    private stremioService: StremioService
 
     // Controllers
     private contentController: ContentController
@@ -84,8 +86,9 @@ export class OMSSServer {
         this.tmdbService = new TMDBService(tmdbApiKey, this.cache, config.tmdb?.cacheTTL || 86400)
 
         // Initialize services
-        this.sourceService = new SourceService(this.registry, this.cache, this.tmdbService, config.cache?.ttl)
         this.proxyService = new ProxyService(config.proxyConfig?.streamPatterns || [])
+        this.stremioService = new StremioService(config.stremio?.stremioAddons || [], this.proxyService)
+        this.sourceService = new SourceService(this.registry, this.cache, this.tmdbService, this.stremioService, config.cache?.ttl)
         this.healthService = new HealthService(config, this.registry)
 
         // Initialize controllers
@@ -93,12 +96,8 @@ export class OMSSServer {
         this.proxyController = new ProxyController(this.proxyService)
         this.healthController = new HealthController(this.healthService)
 
-        if (config.stremioAddon) {
-            this.stremioController = new StremioController(
-                this.sourceService,
-                config,
-                this.tmdbService
-            )
+        if (config.stremio?.enableNativeAddon) {
+            this.stremioController = new StremioController(this.sourceService, config, this.tmdbService)
         }
 
         // Setup middleware and routes
@@ -189,6 +188,11 @@ export class OMSSServer {
 
             await this.app.listen({ port, host })
 
+            const addons = this.config.stremio?.stremioAddons || []
+            const enabledAddons = addons.filter((a) => a.enabled !== false).length
+
+            const stremioStatus = this.config.stremio?.enableNativeAddon ? `Enabled` : 'Disabled'
+
             console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║                   OMSS Backend Server                  ║
@@ -198,7 +202,8 @@ export class OMSSServer {
 ║  Port:       ${port.toString().padEnd(42)}║
 ║  Providers:  ${this.registry ? this.registry['providers'].size.toString().padEnd(42) : '0'.padEnd(42)}║
 ║  Cache:      ${(this.config.cache?.type || 'memory').padEnd(42)}║
-║  Stremio:    ${(this.config.stremioAddon ? 'Enabled' : 'Disabled').padEnd(42)}║
+║  Stremio:    ${stremioStatus.padEnd(42)}║
+║  Addons:     ${`${enabledAddons} enabled`.padEnd(42)}║
 ╠════════════════════════════════════════════════════════╣
 ║  Endpoints:                                            ║
 ║    GET  /                        - Health check        ║
@@ -207,10 +212,12 @@ export class OMSSServer {
 ║                                  - TV sources          ║
 ║    GET  /v1/proxy?data=...       - Proxy endpoint      ║
 ║    GET  /v1/refresh/:responseId  - Refresh cache       ║`)
-            if (this.config.stremioAddon) {
+
+            if (this.config.stremio?.enableNativeAddon) {
                 console.log(`║                                                        ║
 ║    GET  /stremio/manifest.json    - Stremio manifest   ║`)
             }
+
             console.log(`╚════════════════════════════════════════════════════════╝
 
 🚀 Server listening at http://${host}:${port}

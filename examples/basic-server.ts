@@ -26,7 +26,17 @@ async function main() {
             },
         },
 
-        stremioAddon: true, // Enable Stremio addon endpoints
+        stremio: {
+            enableNativeAddon: true, // Whether to enable the native Stremio addon. can be used for your stremio app
+            stremioAddons: [ // you can bind additional addons that will be checked during source discovery. has to end with /manifest.json and follow the stremio addon manifest schema
+                /*
+                {
+                    id: '', // some id for your reference
+                    url: '', // the url with /manifest.json at the end, for example: https://example.com/addon/manifest.json
+                }
+                */
+            ]
+        },
 
         // TMDB (required)
         tmdb: {

@@ -9,7 +9,6 @@ export interface OMSSConfig {
     host?: string
     publicUrl?: string // Full public URL (e.g., https://api.example.com)
     cache?: CacheConfig
-    providers?: ProviderConfig[]
     tmdb?: {
         apiKey: string
         cacheTTL?: number
@@ -20,7 +19,7 @@ export interface OMSSConfig {
     }
     note?: string
     cors?: FastifyCorsOptions
-    stremioAddon?: boolean
+    stremio?: StremioConfig
 }
 
 export interface CacheConfig {
@@ -36,11 +35,17 @@ export interface CacheConfig {
     }
 }
 
-export interface ProviderConfig {
-    id: string
-    enabled: boolean
-    priority?: number
-    config?: Record<string, any>
+
+export interface StremioConfig {
+    enableNativeAddon: boolean
+    stremioAddons: StremioAddonConfig[]
+}
+
+export interface StremioAddonConfig {
+    id: string;
+    url: string;
+    enabled?: boolean;
+    timeoutMs?: number;
 }
 
 // OMSS Response Types
@@ -165,7 +170,7 @@ export interface ProviderMediaObject {
     tmdbId: string
     s?: number
     e?: number
-    releaseYear?: string
-    imdbId?: string
-    title?: string
+    releaseYear: string
+    imdbId: string
+    title: string
 }

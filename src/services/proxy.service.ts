@@ -104,11 +104,12 @@ export class ProxyService {
             validateStatus: (status) => status < 500,
         })
 
-        const contentType = response.headers['content-type'] || this.getMimeType(proxyData.url)
+        const contentType = response.headers['content-type'] as string || this.getMimeType(proxyData.url)
 
         // Build headers object
         const headers: Record<string, string> = {
             'Content-Disposition': 'inline; filename="stream"',
+            // @ts-ignore
             'Cache-Control': response.headers['cache-control'] || 'public, max-age=7200',
             'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length, Content-Range, Last-Modified, ETag',
             ...(response.headers['accept-ranges'] || response.headers['accept-range']
@@ -120,6 +121,7 @@ export class ProxyService {
 
         // Add optional headers if present
         if (response.headers['content-length']) {
+            // @ts-ignore
             headers['Content-Length'] = response.headers['content-length']
         }
         if (response.headers['content-range']) {
@@ -156,7 +158,7 @@ export class ProxyService {
         })
 
         // Check if we need to rewrite manifest files
-        const contentType = response.headers['content-type'] || ''
+        const contentType = response.headers['content-type'] as string || ''
         let responseData = response.data
 
         if (this.isManifestFile(contentType, proxyData.url)) {
@@ -371,7 +373,7 @@ export class ProxyService {
      * Create a proxy URL for a given upstream URL
      * ALWAYS includes headers from the original request
      */
-    private createProxyUrl(url: string, headers?: Record<string, string>): string {
+    public createProxyUrl(url: string, headers?: Record<string, string>): string {
         const data = JSON.stringify({ url, headers })
         return `/v1/proxy?data=${encodeURIComponent(data)}`
     }

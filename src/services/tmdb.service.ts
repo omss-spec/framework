@@ -208,7 +208,7 @@ export class TMDBService {
                 const result: TMDBValidationResult = {
                     exists: true,
                     released: false,
-                    title: episodeData.name,
+                    title: episodeData.name ?? '',
                     message: `Episode "${episodeData.name}" (S${season}E${episode}) does not have an air date yet`,
                 }
 
@@ -256,12 +256,13 @@ export class TMDBService {
     async getMediaObject(type: 'movie' | 'tv', tmdbId: string, season?: number, episode?: number): Promise<ProviderMediaObject> {
         if (type === 'movie') {
             const validation = await this.validateMovie(tmdbId)
-
+            
             return {
                 type: 'movie',
                 tmdbId,
-                title: validation.title,
-                releaseYear: validation.releaseDate ? new Date(validation.releaseDate).getFullYear().toString() : undefined,
+                imdbId: await this.getImdbId(tmdbId, 'movie') || '',
+                title: validation.title ?? '',
+                releaseYear: validation.releaseDate ? new Date(validation.releaseDate).getFullYear().toString() : '',
             }
         } else {
             const validation = await this.validateTVEpisode(tmdbId, season!, episode!)
@@ -269,9 +270,11 @@ export class TMDBService {
             return {
                 type: 'tv',
                 tmdbId,
+                imdbId: await this.getImdbId(tmdbId, 'tv') || '',
                 s: season,
                 e: episode,
-                title: validation.title,
+                releaseYear: validation.releaseDate ? new Date(validation.releaseDate).getFullYear().toString() : '',
+                title: validation.title ?? '',
             }
         }
     }

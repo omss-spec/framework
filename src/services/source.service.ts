@@ -5,6 +5,7 @@ import { createTMDBValidator } from '../middleware/validation.js'
 import { OMSSErrors } from '../core/errors.js'
 import { TMDBService } from '../services/tmdb.service.js'
 import { v4 as uuidv4 } from 'uuid'
+import { StremioService } from './stremio.service.js'
 
 export class SourceService {
     private tmdbValidator: ReturnType<typeof createTMDBValidator>
@@ -14,6 +15,7 @@ export class SourceService {
         private registry: ProviderRegistry,
         private cache: CacheService,
         private tmdbService: TMDBService,
+        private stremioService: StremioService,
         private cacheTTL = { sources: 7200, subtitles: 86400 }
     ) {
         setInterval(() => this.cleanupExpiredMappings(), 60 * 60 * 1000)
@@ -41,11 +43,29 @@ export class SourceService {
         const media = await this.tmdbService.getMediaObject('movie', tmdbId)
 
         // Try to get IMDB ID
-        media.imdbId = await this.tmdbService.getImdbId(tmdbId, 'movie')
+        media.imdbId = await this.tmdbService.getImdbId(tmdbId, 'movie') ?? ''
 
-        // Fetch from providers
-        const results = await this.fetchFromProviders('movie', media)
-        const response = this.buildResponse(results)
+        // Fetch from providers and Stremio addons concurrently
+        const [providerResults, stremioResult] = await Promise.all([
+            this.fetchFromProviders('movie', media),
+            this.stremioService?.hasEnabledAddons()
+                ? this.stremioService.getMovieSources(media).catch((err): ProviderResult => ({
+                    sources: [],
+                    subtitles: [],
+                    diagnostics: [{
+                        code: 'PROVIDER_ERROR',
+                        message: `Stremio integration failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                        field: '',
+                        severity: 'error',
+                    }],
+                }))
+                : Promise.resolve(null),
+        ])
+
+        const allResults: ProviderResult[] = [...providerResults]
+        if (stremioResult) allResults.push(stremioResult)
+
+        const response = this.buildResponse(allResults)
 
         // Throw error if no sources found
         if (response.sources.length === 0) {
@@ -87,11 +107,29 @@ export class SourceService {
         const media = await this.tmdbService.getMediaObject('tv', tmdbId, season, episode)
 
         // Try to get IMDB ID
-        media.imdbId = await this.tmdbService.getImdbId(tmdbId, 'tv')
+        media.imdbId = await this.tmdbService.getImdbId(tmdbId, 'tv') ?? ''
 
-        // Fetch from providers
-        const results = await this.fetchFromProviders('tv', media)
-        const response = this.buildResponse(results)
+        // Fetch from providers and Stremio addons concurrently
+        const [providerResults, stremioResult] = await Promise.all([
+            this.fetchFromProviders('tv', media),
+            this.stremioService?.hasEnabledAddons()
+                ? this.stremioService.getTVSources(media).catch((err): ProviderResult => ({
+                    sources: [],
+                    subtitles: [],
+                    diagnostics: [{
+                        code: 'PROVIDER_ERROR',
+                        message: `Stremio integration failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                        field: '',
+                        severity: 'error',
+                    }],
+                }))
+                : Promise.resolve(null),
+        ])
+
+        const allResults: ProviderResult[] = [...providerResults]
+        if (stremioResult) allResults.push(stremioResult)
+
+        const response = this.buildResponse(allResults)
 
         // Throw error if no sources found
         if (response.sources.length === 0) {
