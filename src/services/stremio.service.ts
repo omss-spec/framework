@@ -84,7 +84,7 @@ export class StremioService {
 
         const promises = enabled.map((a) =>
             this.fetchAddonStreams(a, type, id).catch((err) => {
-                console.error(`[StremioService] Addon '${a.id}' failed:`, err)
+                console.log(`[StremioService] Addon '${a.id}' failed:`, err)
                 return {
                     addonId: a.id,
                     streams: [],

@@ -6,6 +6,7 @@ import { OMSSErrors } from '../core/errors.js'
 import { TMDBService } from '../services/tmdb.service.js'
 import { v4 as uuidv4 } from 'uuid'
 import { StremioService } from './stremio.service.js'
+import { ProxyService } from './proxy.service.js'
 
 export class SourceService {
     private tmdbValidator: ReturnType<typeof createTMDBValidator>
@@ -277,15 +278,43 @@ export class SourceService {
         // Deduplicate sources by URL
         results.forEach((r) => {
             r.sources.forEach((source) => {
-                if (!allSourcesMap.has(source.url)) {
-                    allSourcesMap.set(source.url, source)
+                try {
+                    const urlObj = new URL(source.url)
+                    const data = urlObj.searchParams.get('data')
+                    if (!data) throw new Error('Missing data parameter in source URL')
+
+                    const proxyData = ProxyService.decodeProxyData(data)
+
+                    // Use upstream URL as dedup key, but store the original source (with proxy URL)
+                    if (!allSourcesMap.has(proxyData.url)) {
+                        allSourcesMap.set(proxyData.url, source)
+                    }
+                } catch (error) {
+                    console.warn(`[SourceService] Failed to decode source URL: ${source.url}`, error)
+                    // Fallback: dedup by proxy URL itself
+                    if (!allSourcesMap.has(source.url)) {
+                        allSourcesMap.set(source.url, source)
+                    }
                 }
             })
 
             // Deduplicate subtitles by URL
             r.subtitles.forEach((subtitle) => {
-                if (!allSubtitlesMap.has(subtitle.url)) {
-                    allSubtitlesMap.set(subtitle.url, subtitle)
+                try {
+                    const urlObj = new URL(subtitle.url)
+                    const data = urlObj.searchParams.get('data')
+                    if (!data) throw new Error('Missing data parameter in subtitle URL')
+
+                    const proxyData = ProxyService.decodeProxyData(data)
+
+                    if (!allSubtitlesMap.has(proxyData.url)) {
+                        allSubtitlesMap.set(proxyData.url, subtitle)
+                    }
+                } catch (error) {
+                    console.warn(`[SourceService] Failed to decode subtitle URL: ${subtitle.url}`, error)
+                    if (!allSubtitlesMap.has(subtitle.url)) {
+                        allSubtitlesMap.set(subtitle.url, subtitle)
+                    }
                 }
             })
 

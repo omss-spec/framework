@@ -52,7 +52,7 @@ export class ProxyService {
      * Returns either buffered response or streaming response based on file type
      */
     async proxyRequest(encodedData: string): Promise<ProxyResult> {
-        const proxyData = this.decodeProxyData(encodedData)
+        const proxyData = ProxyService.decodeProxyData(encodedData)
 
         this.isProd ?? console.log(`[ProxyService] Proxying request to: ${proxyData.url}`)
 
@@ -202,7 +202,7 @@ export class ProxyService {
     /**
      * Decode proxy data parameter
      */
-    private decodeProxyData(encodedData: string): ProxyData {
+    public static decodeProxyData(encodedData: string): ProxyData {
         try {
             const decoded = decodeURIComponent(encodedData)
             const data = JSON.parse(decoded) as ProxyData
