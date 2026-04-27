@@ -24,4 +24,4 @@ export { HealthService } from './services/health.service.js'
 export { ProxyService as ProxyUtils } from './services/proxy.service.js'
 
 // Re-export commonly used types
-export type * from './core/types.js'
+export type * from './core/types/index.js'

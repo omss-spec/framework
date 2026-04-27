@@ -12,6 +12,8 @@
 
 This is an extendable multi site scraping framework, which follows the implementation guidelines of the **[OMSS (Open Media Streaming Standard)](https://github.com/omss-spec/omss-spec)**. It demonstrates how to build a compliant streaming media aggregation service that scrapes content from multiple providers and returns standardized responses. It handles most of the logic already for you. You just have to add the scraping logic!
 
+Additionally, this is **the worlds first AI-Enabled Streaming Framework**! With built-in support for the Model Context Protocol (MCP), you can easily integrate LLMs and intelligent agents to find streaming sources using natural language queries, or even automate the management of your streaming backend using AI assistants.
+
 ---
 
 ## [_🚀Check This Template Out To Get Started!🚀_](https://github.com/omss-spec/template)
@@ -31,6 +33,8 @@ The `@omss/framework` is the official TypeScript/Node.js implementation framewor
 ### Key Features
 
 - ✅ **Standardized API**: Consistent response format across all providers
+- ✅ **MCP Support**: Optional Model Context Protocol endpoint for LLM integration
+- ✅ **Stremio Compatibility**: Designed to work seamlessly with Stremio Addons and also support Stremio Addon SDK
 - ✅ **Multi-Provider Support**: Aggregate sources from multiple streaming providers
 - ✅ **Built-in Proxy**: Automatic URL proxying with header forwarding
 - ✅ **TMDB Integration**: Validation against The Movie Database
@@ -40,14 +44,17 @@ The `@omss/framework` is the official TypeScript/Node.js implementation framewor
 - ✅ **Health Checks**: Monitor provider availability
 - ✅ **Refresh API**: Force cache invalidation when needed
 
+
 ## 📋 Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Creating Custom Providers](#creating-custom-providers)
+- [MCP Endpoints](#mcp-endpoints)
 - [API Endpoints](#api-endpoints)
 - [Environment Variables](#environment-variables)
+- [Stremio Compatibility](#stremio-compatibility)
 - [Architecture](#architecture)
 - [OMSS Compliance](#omss-compliance)
 - [License](#license)
@@ -435,6 +442,14 @@ export class MyProvider extends BaseProvider {
 
 See the detailed [Provider Creation Guide](./examples/example-provider.ts) for a complete walkthrough.
 
+## 🧩 MCP Endpoints
+
+The Model Context Protocol (MCP) is an optional JSON-RPC-like API that allows LLMs and other intelligent agents to interact with your OMSS server in a structured way. This can be useful for advanced integrations, such as allowing users to ask an AI assistant to find streaming sources for a movie or TV show.
+
+When enabled, the MCP endpoint is exposed at `/mcp` (configurable) and accepts POST requests with a JSON body containing the method and parameters. The framework currently supports the following MCP method:
+
+- `omss_get_sources`: Fetches streaming sources for a movie or TV episode by TMDB ID. Parameters are the same as the regular API endpoints, but wrapped in an MCP request.
+
 ## 📡 API Endpoints
 
 ### GET `/v1/movies/:tmdbId`
@@ -533,6 +548,7 @@ Health check endpoint.
 PORT=3000            # Port number for the server
 HOST=0.0.0.0         # Use 'localhost' to restrict to local access
 NODE_ENV=development # 'development' | 'production'
+MCP_ENABLED=false    # 'true' | 'false'
 
 # TMDB Configuration
 TMDB_API_KEY=your_tmdb_api_key_here
@@ -546,6 +562,14 @@ REDIS_HOST=localhost # default Redis host
 REDIS_PORT=6379      # default Redis port
 REDIS_PASSWORD=      # Redis password if required
 ```
+
+## 📺 Stremio Compatibility
+
+Although the original OMSS standard was not specifically designed for Stremio, this framework is fully compatible with Stremio. In both ways:
+
+1. You can use this framework to build a Stremio Addon. To enable the Stremio Addon SDK, simply set the `stremioAddon` option to `true` in the server configuration. This will automatically add the required endpoints (`/stremio/manifest.json`) and response formatting to work seamlessly with Stremio.
+
+2. You can bind other Stremio Addon's directly to this framework. Since all Stremio Addons follow a standardized API, you can just pass the manifest URL of any Stremio Addon to the `stremioAddons` configuration option, and the framework will automatically fetch the manifest, extract the sources and bind them to your server. This allows you to easily aggregate sources from existing Stremio Addons alongside your custom providers, and expose them all through a single unified API.
 
 ## 🏗️ Architecture
 

@@ -1,4 +1,4 @@
-import { ProviderCapabilities, ProviderMediaObject, ProviderResult, OMSSConfig } from '../core/types.js'
+import { ProviderCapabilities, ProviderMediaObject, ProviderResult, OMSSConfig } from '../core/types/index.js'
 
 /**
  * Console wrapper for provider logging

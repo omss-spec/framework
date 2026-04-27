@@ -1,4 +1,4 @@
-import { HealthResponse, OMSSConfig } from '../core/types.js'
+import { HealthResponse, OMSSConfig } from '../core/types/index.js'
 import { ProviderRegistry } from '../providers/provider-registry.js'
 
 export class HealthService {

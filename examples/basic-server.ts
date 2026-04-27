@@ -38,6 +38,12 @@ async function main() {
             ]
         },
 
+        // MCP (Model Context Protocol) for exposing your providers and the scraping capabilities of your server to LLMs and other intelligent agents, via a simple JSON-RPC-like API. This is an optional feature, but can be useful when you want to integrate your server with LLMs or other intelligent agents (like when you want to be able to "Hey <agent> i want to watch the dark knight, can you find me a source for that?")
+        mcp: {
+            enabled: process.env.MCP_ENABLED === 'true', // Whether to enable the MCP controller and endpoints
+            path: '/mcp', // default: /mcp - The path where the MCP endpoint will be exposed. You can change this if you want to expose it on a different path.
+        },
+
         // TMDB (required)
         tmdb: {
             apiKey: process.env.TMDB_API_KEY!,

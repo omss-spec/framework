@@ -1,4 +1,5 @@
 import { FastifyCorsOptions } from '@fastify/cors'
+import { MCPConfig } from './mcp-types.js'
 
 // OMSS v1.0 standard types + some custom stuff
 
@@ -20,6 +21,7 @@ export interface OMSSConfig {
     note?: string
     cors?: FastifyCorsOptions
     stremio?: StremioConfig
+    mcp?: MCPConfig
 }
 
 export interface CacheConfig {
@@ -173,3 +175,4 @@ export interface ProviderMediaObject {
     imdbId: string
     title: string
 }
+

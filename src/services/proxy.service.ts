@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios'
 import { Readable } from 'stream'
-import { ProxyData } from '../core/types.js'
+import { ProxyData } from '../core/types/index.js'
 import { OMSSError } from '../core/errors.js'
 
 export interface ProxyResponse {

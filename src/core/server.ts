@@ -1,6 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify'
 import cors, { FastifyCorsOptions } from '@fastify/cors'
-import { OMSSConfig } from './types.js'
+import { OMSSConfig } from './types/index.js'
 import { ProviderRegistry } from '../providers/provider-registry.js'
 import { createCacheService, CacheService } from './cache.js'
 import { SourceService } from '../services/source.service.js'
@@ -16,6 +16,7 @@ import { validateContentType } from '../middleware/validation.js'
 import { TMDBService } from '../services/tmdb.service.js'
 import { v4 as uuidv4 } from 'uuid'
 import { StremioController } from '../controllers/stremio.controller.js'
+import { MCPController } from 'src/controllers/mcp.controller.js'
 
 export class OMSSServer {
     private app: FastifyInstance
@@ -35,6 +36,7 @@ export class OMSSServer {
     private proxyController: ProxyController
     private healthController: HealthController
     private stremioController?: StremioController
+    private mcpController?: MCPController
 
     constructor(config: OMSSConfig, registry?: ProviderRegistry) {
         this.config = config
@@ -100,6 +102,10 @@ export class OMSSServer {
             this.stremioController = new StremioController(this.sourceService, config, this.tmdbService)
         }
 
+        if (config.mcp?.enabled) {
+            this.mcpController = new MCPController(this.sourceService)
+        }
+
         // Setup middleware and routes
         this.setupMiddleware(config.cors)
         this.setupRoutes()
@@ -155,6 +161,12 @@ export class OMSSServer {
             this.app.get('/stremio/stream/:type/:id', this.stremioController.getStream.bind(this.stremioController))
         }
 
+        if (this.mcpController && this.config.mcp?.enabled) {
+            const path = this.config.mcp.path || '/mcp'
+            this.app.post(path, this.mcpController.handle.bind(this.mcpController))
+        }
+
+
         // 404 handler
         this.app.setNotFoundHandler((request, reply) => {
             reply.code(404).send({
@@ -190,7 +202,7 @@ export class OMSSServer {
 
             const addons = this.config.stremio?.stremioAddons || []
             const enabledAddons = addons.filter((a) => a.enabled !== false).length
-
+            const mcpStatus = this.config.mcp?.enabled ? 'Enabled' : 'Disabled'
             const stremioStatus = this.config.stremio?.enableNativeAddon ? `Enabled` : 'Disabled'
 
             console.log(`
@@ -203,6 +215,7 @@ export class OMSSServer {
 ║  Providers:  ${this.registry ? this.registry['providers'].size.toString().padEnd(42) : '0'.padEnd(42)}║
 ║  Cache:      ${(this.config.cache?.type || 'memory').padEnd(42)}║
 ║  Stremio:    ${stremioStatus.padEnd(42)}║
+║  MCP:        ${mcpStatus.padEnd(42)}║
 ║  Addons:     ${`${enabledAddons} enabled`.padEnd(42)}║
 ╠════════════════════════════════════════════════════════╣
 ║  Endpoints:                                            ║

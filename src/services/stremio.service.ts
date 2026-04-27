@@ -1,7 +1,7 @@
 import { BaseProvider } from '../providers/base-provider.js'
-import { ProviderMediaObject, ProviderResult, Source, Subtitle } from '../core/types.js'
-import type { Diagnostic, StremioAddonConfig } from '../core/types.js'
+import type { Diagnostic, StremioAddonConfig, ProviderMediaObject, ProviderResult, Source, Subtitle } from '../core/types/index.js'
 import { ProxyService } from './proxy.service.js'
+import { safeId } from '../utils/string.js'
 
 interface StremioStream {
     title?: string
@@ -86,7 +86,7 @@ export class StremioService {
             this.fetchAddonStreams(a, type, id).catch((err) => {
                 console.log(`[StremioService] Addon '${a.id}' failed:`, err)
                 return {
-                    addonId: a.id,
+                    addonId: safeId(a.id),
                     streams: [],
                     error: err instanceof Error ? err.message : String(err),
                 }
@@ -106,7 +106,7 @@ export class StremioService {
             if ('error' in r) {
                 diagnostics.push({
                     code: 'PROVIDER_ERROR',
-                    message: `Stremio addon '${r.addonId}' failed: ${r.error}`,
+                    message: `Stremio addon '${safeId(r.addonId)}' failed: ${r.error}`,
                     field: '',
                     severity: 'error',
                 })
@@ -117,7 +117,7 @@ export class StremioService {
 
             for (const stream of r.streams) {
                 if (!stream.url.startsWith('https://')) {
-                    console.debug(`[StremioService] Skipping non-HTTPS stream from '${r.addonId}': ${stream.url}`)
+                    console.debug(`[StremioService] Skipping non-HTTPS stream from '${safeId(r.addonId)}': ${stream.url}`)
                     continue
                 }
 
@@ -142,8 +142,8 @@ export class StremioService {
                         },
                     ],
                     provider: {
-                        id: `stremio:${r.addonId}`,
-                        name: `Stremio ${r.addonId}`,
+                        id: `stremio:${safeId(r.addonId)}`,
+                        name: `Stremio ${safeId(r.addonId).replace(/\./g, ' ')}`,
                     },
                 })
             }
@@ -176,7 +176,7 @@ export class StremioService {
 
             console.log(`[StremioService] Stremio Addon '${addon.id}' returned ${streams.length} source(s) in ${duration}ms`)
 
-            return { addonId: addon.id, streams }
+            return { addonId: safeId(addon.id), streams }
         } finally {
             if (timeout) clearTimeout(timeout)
         }

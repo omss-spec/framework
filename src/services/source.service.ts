@@ -1,6 +1,6 @@
 import { ProviderRegistry } from '../providers/provider-registry.js'
 import { CacheService } from '../core/cache.js'
-import { SourceResponse, ProviderResult, ResponseIdMapping, ProviderMediaObject, Diagnostic, Subtitle, Source } from '../core/types.js'
+import { SourceResponse, ProviderResult, ResponseIdMapping, ProviderMediaObject, Diagnostic, Subtitle, Source } from '../core/types/index.js'
 import { createTMDBValidator } from '../middleware/validation.js'
 import { OMSSErrors } from '../core/errors.js'
 import { TMDBService } from '../services/tmdb.service.js'

@@ -1,7 +1,8 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { SourceService } from '../services/source.service.js'
-import { OMSSConfig, SourceResponse, Source } from '../core/types.js'
+import { OMSSConfig, SourceResponse, Source } from '../core/types/index.js'
 import { TMDBService } from '../services/tmdb.service.js'
+import { safeId } from '../utils/string.js'
 
 interface StreamParams {
     type: string
@@ -45,11 +46,7 @@ export class StremioController {
      * GET /stremio/manifest.json
      */
     async getManifest(_req: FastifyRequest, reply: FastifyReply) {
-        const safeName = this.config.name
-            .toLowerCase()
-            .replace(/[^a-z\s]/g, '')
-            .trim()
-            .replace(/\s+/g, '.')
+        const safeName = safeId(this.config.name) || 'omss-addon'
 
         const manifest: StremioManifest = {
             id: `omss.${safeName}`,

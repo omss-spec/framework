@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ProxyService, isStreamingResponse } from '../services/proxy.service.js'
-import { ProxyData } from '../core/types.js'
+import { ProxyData } from '../core/types/index.js'
 
 interface ProxyQuery {
     data: string

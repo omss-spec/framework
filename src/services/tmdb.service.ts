@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { CacheService } from '../core/cache.js'
-import { ProviderMediaObject } from '../core/types.js'
+import { ProviderMediaObject } from '../core/types/index.js'
 
 export interface TMDBMovieResponse {
     id: number

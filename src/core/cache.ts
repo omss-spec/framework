@@ -1,4 +1,4 @@
-import { CacheConfig } from '../core/types.js'
+import { CacheConfig } from '../core/types/index.js'
 import { Redis as RedisClient } from 'ioredis'
 
 export interface CacheService {
