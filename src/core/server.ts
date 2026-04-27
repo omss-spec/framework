@@ -166,7 +166,6 @@ export class OMSSServer {
             this.app.post(path, this.mcpController.handle.bind(this.mcpController))
         }
 
-
         // 404 handler
         this.app.setNotFoundHandler((request, reply) => {
             reply.code(404).send({

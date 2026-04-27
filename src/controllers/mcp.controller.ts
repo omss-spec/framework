@@ -4,15 +4,17 @@ import { SourceService } from '../services/source.service.js'
 
 interface ToolsCallParams {
     name: string
-    arguments: {
-        tmdbId: string
-        mediaType: 'movie'
-    } | {
-        tmdbId: string
-        mediaType: 'tv'
-        season: number
-        episode: number
-    }
+    arguments:
+        | {
+              tmdbId: string
+              mediaType: 'movie'
+          }
+        | {
+              tmdbId: string
+              mediaType: 'tv'
+              season: number
+              episode: number
+          }
 }
 
 export class MCPController {
@@ -42,11 +44,10 @@ export class MCPController {
     }
 
     private async handleToolsList(req: MCPRequest, reply: FastifyReply) {
-        const tools =[
+        const tools = [
             {
                 name: 'omss_get_sources',
-                description:
-                    'Fetches streaming sources for a movie or TV episode by TMDB id using the OMSS backend.',
+                description: 'Fetches streaming sources for a movie or TV episode by TMDB id using the OMSS backend.',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -111,25 +112,17 @@ export class MCPController {
                 result = await this.sourceService.getMovieSources(args.tmdbId)
             } else {
                 // mediaType === 'tv'
-                if (
-                    typeof args.season !== 'number' ||
-                    typeof args.episode !== 'number'
-                ) {
+                if (typeof args.season !== 'number' || typeof args.episode !== 'number') {
                     return reply.code(400).send({
                         id: req.id,
                         error: {
                             code: 400,
-                            message:
-                                'season and episode are required for mediaType=tv',
+                            message: 'season and episode are required for mediaType=tv',
                         },
                     } satisfies MCPResponse)
                 }
 
-                result = await this.sourceService.getTVSources(
-                    args.tmdbId,
-                    args.season,
-                    args.episode,
-                )
+                result = await this.sourceService.getTVSources(args.tmdbId, args.season, args.episode)
             }
 
             const res: MCPResponse = {

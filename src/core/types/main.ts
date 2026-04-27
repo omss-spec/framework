@@ -175,4 +175,3 @@ export interface ProviderMediaObject {
     imdbId: string
     title: string
 }
-

@@ -1,19 +1,19 @@
-import { BaseProvider } from '../../src/'; // replace this in your own implementation with '@omss/framework'
-import type { ProviderCapabilities, ProviderMediaObject, ProviderResult } from '../../src/'; // replace this in your own implementation with '@omss/framework'
+import { BaseProvider } from '../../src/' // replace this in your own implementation with '@omss/framework'
+import type { ProviderCapabilities, ProviderMediaObject, ProviderResult } from '../../src/' // replace this in your own implementation with '@omss/framework'
 
 export class ExampleProvider extends BaseProvider {
-    readonly id = 'example-provider';
-    readonly name = 'Example Provider';
-    readonly enabled = true;
-    readonly BASE_URL = 'https://example.com';
+    readonly id = 'example-provider'
+    readonly name = 'Example Provider'
+    readonly enabled = true
+    readonly BASE_URL = 'https://example.com'
     readonly HEADERS = {
         Referer: 'https://example.com',
         'User-Agent': 'Mozilla/5.0',
-    };
+    }
 
     readonly capabilities: ProviderCapabilities = {
         supportedContentTypes: ['movies', 'tv'],
-    };
+    }
 
     async getMovieSources(media: ProviderMediaObject): Promise<ProviderResult> {
         try {
@@ -27,7 +27,7 @@ export class ExampleProvider extends BaseProvider {
                 sources: [],
                 subtitles: [],
                 diagnostics: [],
-            };
+            }
         } catch (error) {
             return {
                 sources: [],
@@ -40,7 +40,7 @@ export class ExampleProvider extends BaseProvider {
                         severity: 'error',
                     },
                 ],
-            };
+            }
         }
     }
 
@@ -51,6 +51,6 @@ export class ExampleProvider extends BaseProvider {
             sources: [],
             subtitles: [],
             diagnostics: [],
-        };
+        }
     }
 }

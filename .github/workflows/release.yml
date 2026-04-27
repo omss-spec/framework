@@ -1,146 +1,146 @@
 name: Create Release
 
 on:
-  workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
+    workflow_dispatch:
+    push:
+        tags:
+            - 'v*'
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Get current tag
-        id: currenttag
-        run: |
-          CURRENT_TAG=$(git tag --sort=-version:refname | head -1)
-          echo "current_tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
-          echo "Current tag: $CURRENT_TAG"
+    release:
+        runs-on: ubuntu-latest
 
-      - name: Get previous tag
-        id: previoustag
-        run: |
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | sed -n '2p')
-          PREVIOUS_TAG=${PREVIOUS_TAG//+/}
-          echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-          echo "Previous tag: $PREVIOUS_TAG"
-      
-      - name: Generate categorized release notes
-        id: release_notes
-        run: |
-          CURRENT_TAG=${{ steps.currenttag.outputs.current_tag }}
-          PREVIOUS_TAG=${{ steps.previoustag.outputs.previous_tag }}
-          
-          echo "Generating release notes from $PREVIOUS_TAG to $CURRENT_TAG"
-          
-          # Get commit hashes
-          if [ -z "$PREVIOUS_TAG" ]; then
-            HASHES=$(git log --pretty=format:"%H" $CURRENT_TAG)
-          else
-            HASHES=$(git log --pretty=format:"%H" $PREVIOUS_TAG..$CURRENT_TAG)
-          fi
-          
-          # Categorize commits
-          FEATURES=""
-          FIXES=""
-          DOCS=""
-          CHORES=""
-          BREAKING=""
-          OTHERS=""
-          
-          # Process each commit individually
-          while read -r hash; do
-            # Get the full message and short hash separately
-            message=$(git log --format=%s -n 1 $hash)
-            short_hash=$(git log --format=%h -n 1 $hash)
-            
-            # Trim whitespace
-            message=$(echo "$message" | xargs)
-            short_hash=$(echo "$short_hash" | xargs)
-            
-            echo "Processing: '$message' ($short_hash)"
-            
-            # Extract clean message
-            clean_message="$message"
-            if [[ "$message" =~ ^[a-z]+: ]]; then
-              clean_message="${message#*: }"
-            fi
-            
-            case "$message" in
-              feat:*|feat\(*|feature:*)
-                FEATURES="${FEATURES}- feat: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
-                ;;
-              fix:*|fix\(*)
-                FIXES="${FIXES}- fix: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
-                ;;
-              docs:*|docs\(*)
-                DOCS="${DOCS}- docs: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
-                ;;
-              chore:*|chore\(*|ci:*|ci\(*|build:*|build\(*)
-                CHORES="${CHORES}- chore: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
-                ;;
-              *BREAKING*|*breaking*|*!:*)
-                BREAKING="${BREAKING}- breaking change: [${message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
-                ;;
-              *)
-                OTHERS="${OTHERS}- [${message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
-                ;;
-            esac
-          done <<< "$HASHES"
-          
-          # Build release notes (same as before)
-          NOTES="## Release $CURRENT_TAG"$'\n\n'
-          
-          if [ -n "$BREAKING" ]; then
-            NOTES="${NOTES}### ⚠️ Breaking Changes"$'\n'"$(echo -e "$BREAKING")"$'\n'
-          fi
-          
-          if [ -n "$FEATURES" ]; then
-            NOTES="${NOTES}### ✨ Features"$'\n'"$(echo -e "$FEATURES")"$'\n'
-          fi
-          
-          if [ -n "$FIXES" ]; then
-            NOTES="${NOTES}### 🐛 Bug Fixes"$'\n'"$(echo -e "$FIXES")"$'\n'
-          fi
-          
-          if [ -n "$DOCS" ]; then
-            NOTES="${NOTES}### 📚 Documentation"$'\n'"$(echo -e "$DOCS")"$'\n'
-          fi
-          
-          if [ -n "$CHORES" ]; then
-            NOTES="${NOTES}### 🔧 Maintenance"$'\n'"$(echo -e "$CHORES")"$'\n'
-          fi
-          
-          if [ -n "$OTHERS" ]; then
-            NOTES="${NOTES}### 📦 Other Changes"$'\n'"$(echo -e "$OTHERS")"$'\n'
-          fi
-          
-          if [ -n "$PREVIOUS_TAG" ]; then
-            NOTES="${NOTES}"$'\n'"**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG"
-          fi
-          
-          {
-            echo "notes<<EOF"
-            echo "$NOTES"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2.5.0
-        with:
-          name: Release ${{ steps.currenttag.outputs.current_tag }}
-          body: ${{ steps.release_notes.outputs.notes }}
-          draft: false
-          generate_release_notes: false
-          tag_name: ${{ steps.currenttag.outputs.current_tag }}
-          prerelease: ${{ contains(steps.currenttag.outputs.current_tag, 'alpha') || contains(steps.currenttag.outputs.current_tag, 'beta') || contains(steps.currenttag.outputs.current_tag, 'rc') }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Get current tag
+              id: currenttag
+              run: |
+                  CURRENT_TAG=$(git tag --sort=-version:refname | head -1)
+                  echo "current_tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
+                  echo "Current tag: $CURRENT_TAG"
+
+            - name: Get previous tag
+              id: previoustag
+              run: |
+                  PREVIOUS_TAG=$(git tag --sort=-version:refname | sed -n '2p')
+                  PREVIOUS_TAG=${PREVIOUS_TAG//+/}
+                  echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+                  echo "Previous tag: $PREVIOUS_TAG"
+
+            - name: Generate categorized release notes
+              id: release_notes
+              run: |
+                  CURRENT_TAG=${{ steps.currenttag.outputs.current_tag }}
+                  PREVIOUS_TAG=${{ steps.previoustag.outputs.previous_tag }}
+
+                  echo "Generating release notes from $PREVIOUS_TAG to $CURRENT_TAG"
+
+                  # Get commit hashes
+                  if [ -z "$PREVIOUS_TAG" ]; then
+                    HASHES=$(git log --pretty=format:"%H" $CURRENT_TAG)
+                  else
+                    HASHES=$(git log --pretty=format:"%H" $PREVIOUS_TAG..$CURRENT_TAG)
+                  fi
+
+                  # Categorize commits
+                  FEATURES=""
+                  FIXES=""
+                  DOCS=""
+                  CHORES=""
+                  BREAKING=""
+                  OTHERS=""
+
+                  # Process each commit individually
+                  while read -r hash; do
+                    # Get the full message and short hash separately
+                    message=$(git log --format=%s -n 1 $hash)
+                    short_hash=$(git log --format=%h -n 1 $hash)
+                    
+                    # Trim whitespace
+                    message=$(echo "$message" | xargs)
+                    short_hash=$(echo "$short_hash" | xargs)
+                    
+                    echo "Processing: '$message' ($short_hash)"
+                    
+                    # Extract clean message
+                    clean_message="$message"
+                    if [[ "$message" =~ ^[a-z]+: ]]; then
+                      clean_message="${message#*: }"
+                    fi
+                    
+                    case "$message" in
+                      feat:*|feat\(*|feature:*)
+                        FEATURES="${FEATURES}- feat: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
+                        ;;
+                      fix:*|fix\(*)
+                        FIXES="${FIXES}- fix: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
+                        ;;
+                      docs:*|docs\(*)
+                        DOCS="${DOCS}- docs: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
+                        ;;
+                      chore:*|chore\(*|ci:*|ci\(*|build:*|build\(*)
+                        CHORES="${CHORES}- chore: [${clean_message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
+                        ;;
+                      *BREAKING*|*breaking*|*!:*)
+                        BREAKING="${BREAKING}- breaking change: [${message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
+                        ;;
+                      *)
+                        OTHERS="${OTHERS}- [${message}](https://github.com/${{ github.repository }}/commit/${short_hash})\n"
+                        ;;
+                    esac
+                  done <<< "$HASHES"
+
+                  # Build release notes (same as before)
+                  NOTES="## Release $CURRENT_TAG"$'\n\n'
+
+                  if [ -n "$BREAKING" ]; then
+                    NOTES="${NOTES}### ⚠️ Breaking Changes"$'\n'"$(echo -e "$BREAKING")"$'\n'
+                  fi
+
+                  if [ -n "$FEATURES" ]; then
+                    NOTES="${NOTES}### ✨ Features"$'\n'"$(echo -e "$FEATURES")"$'\n'
+                  fi
+
+                  if [ -n "$FIXES" ]; then
+                    NOTES="${NOTES}### 🐛 Bug Fixes"$'\n'"$(echo -e "$FIXES")"$'\n'
+                  fi
+
+                  if [ -n "$DOCS" ]; then
+                    NOTES="${NOTES}### 📚 Documentation"$'\n'"$(echo -e "$DOCS")"$'\n'
+                  fi
+
+                  if [ -n "$CHORES" ]; then
+                    NOTES="${NOTES}### 🔧 Maintenance"$'\n'"$(echo -e "$CHORES")"$'\n'
+                  fi
+
+                  if [ -n "$OTHERS" ]; then
+                    NOTES="${NOTES}### 📦 Other Changes"$'\n'"$(echo -e "$OTHERS")"$'\n'
+                  fi
+
+                  if [ -n "$PREVIOUS_TAG" ]; then
+                    NOTES="${NOTES}"$'\n'"**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG"
+                  fi
+
+                  {
+                    echo "notes<<EOF"
+                    echo "$NOTES"
+                    echo "EOF"
+                  } >> $GITHUB_OUTPUT
+
+            - name: Create Release
+              uses: softprops/action-gh-release@v2.5.0
+              with:
+                  name: Release ${{ steps.currenttag.outputs.current_tag }}
+                  body: ${{ steps.release_notes.outputs.notes }}
+                  draft: false
+                  generate_release_notes: false
+                  tag_name: ${{ steps.currenttag.outputs.current_tag }}
+                  prerelease: ${{ contains(steps.currenttag.outputs.current_tag, 'alpha') || contains(steps.currenttag.outputs.current_tag, 'beta') || contains(steps.currenttag.outputs.current_tag, 'rc') }}
+                  token: ${{ secrets.GITHUB_TOKEN }}

@@ -28,14 +28,15 @@ async function main() {
 
         stremio: {
             enableNativeAddon: true, // Whether to enable the native Stremio addon. can be used for your stremio app
-            stremioAddons: [ // you can bind additional addons that will be checked during source discovery. has to end with /manifest.json and follow the stremio addon manifest schema
+            stremioAddons: [
+                // you can bind additional addons that will be checked during source discovery. has to end with /manifest.json and follow the stremio addon manifest schema
                 /*
                 {
                     id: '', // some id for your reference
                     url: '', // the url with /manifest.json at the end, for example: https://example.com/addon/manifest.json
                 }
                 */
-            ]
+            ],
         },
 
         // MCP (Model Context Protocol) for exposing your providers and the scraping capabilities of your server to LLMs and other intelligent agents, via a simple JSON-RPC-like API. This is an optional feature, but can be useful when you want to integrate your server with LLMs or other intelligent agents (like when you want to be able to "Hey <agent> i want to watch the dark knight, can you find me a source for that?")
