@@ -68,7 +68,7 @@
         "dotenv": "^17.2.3",
         "fastify": "^5.7.1",
         "ioredis": "^5.9.2",
-        "uuid": "^13.0.0"
+        "uuid": "^14.0.0"
     },
     "devDependencies": {
         "@types/ioredis": "^4.28.10",
