@@ -1,5 +1,4 @@
 import { ErrorCode } from './types/index.js'
-import { v4 as uuidv4 } from 'uuid'
 
 export class OMSSError extends Error {
     constructor(
@@ -7,7 +6,7 @@ export class OMSSError extends Error {
         public message: string,
         public statusCode: number,
         public details?: Record<string, any>,
-        public traceId: string = uuidv4()
+        public traceId: string = crypto.randomUUID()
     ) {
         super(message)
         this.name = 'OMSSError'

@@ -4,7 +4,6 @@ import { SourceResponse, ProviderResult, ResponseIdMapping, ProviderMediaObject,
 import { createTMDBValidator } from '../middleware/validation.js'
 import { OMSSErrors } from '../core/errors.js'
 import { TMDBService } from '../services/tmdb.service.js'
-import { v4 as uuidv4 } from 'uuid'
 import { StremioService } from './stremio.service.js'
 import { ProxyService } from './proxy.service.js'
 
@@ -338,7 +337,7 @@ export class SourceService {
         const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
 
         return {
-            responseId: uuidv4(),
+            responseId: crypto.randomUUID(),
             expiresAt,
             sources: uniqueSources,
             subtitles: uniqueSubtitles,

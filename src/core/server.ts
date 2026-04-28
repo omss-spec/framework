@@ -14,7 +14,6 @@ import { errorHandler } from '../middleware/error-handler.js'
 import { requestLogger } from '../middleware/logger.js'
 import { validateContentType } from '../middleware/validation.js'
 import { TMDBService } from '../services/tmdb.service.js'
-import { v4 as uuidv4 } from 'uuid'
 import { StremioController } from '../controllers/stremio.controller.js'
 import { MCPController } from 'src/controllers/mcp.controller.js'
 
@@ -72,7 +71,7 @@ export class OMSSServer {
         this.app = Fastify({
             logger: false,
             requestIdHeader: 'x-request-id',
-            genReqId: () => uuidv4(),
+            genReqId: () => crypto.randomUUID(),
             trustProxy: true,
         })
 
