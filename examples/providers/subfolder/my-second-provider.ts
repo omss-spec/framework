@@ -17,10 +17,6 @@ export class ExampleProvider extends BaseProvider {
 
     async getMovieSources(media: ProviderMediaObject): Promise<ProviderResult> {
         try {
-            /*const response = await axios.get(`${this.BASE_URL}/movie/${media.tmdbId}`, {
-                headers: this.HEADERS,
-            });
-            */
             // Your implementation here
             return {
                 sources: [

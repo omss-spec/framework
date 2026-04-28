@@ -110,7 +110,6 @@ export class StremioController {
      */
     async getStream(request: FastifyRequest<{ Params: StreamParams }>, reply: FastifyReply) {
         const { type, id } = request.params
-        const mediaType = type === 'series' || type === 'tv' ? 'tv' : 'movie'
 
         const resolved = await this.resolveTmdbId(id, type)
 
@@ -128,10 +127,6 @@ export class StremioController {
 
         try {
             let omssResponse: SourceResponse | null = null
-            const mediaType = type === 'movie' ? 'movie' : 'tv'
-
-            const mediaObject = await this.tmdbService.getMediaObject(mediaType, tmdbId, season, episode)
-            const mediaTitle = mediaObject.title ?? tmdbId
 
             if (type === 'movie') {
                 omssResponse = await this.sourceService.getMovieSources(tmdbId)

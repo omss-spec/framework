@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { CacheService } from '../core/cache.js'
 import { ProviderMediaObject } from '../core/types/index.js'
 
@@ -73,11 +72,9 @@ export class TMDBService {
         }
 
         try {
-            const response = await axios.get<TMDBMovieResponse>(`${this.baseUrl}/movie/${tmdbId}`, {
-                params: { api_key: this.apiKey },
-            })
+            const response = await fetch(`${this.baseUrl}/movie/${tmdbId}?api_key=${this.apiKey}`)
 
-            const movie = response.data
+            const movie = await response.json() as TMDBMovieResponse
             const releaseDate = new Date(movie.release_date)
             const now = new Date()
             const released = releaseDate <= now && movie.status === 'Released'
@@ -94,7 +91,7 @@ export class TMDBService {
             await this.cache.set(cacheKey, result, this.cacheTTL)
             return result
         } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
+            if (error instanceof Response && error.status === 404) {
                 const result: TMDBValidationResult = {
                     exists: false,
                     released: false,
@@ -124,12 +121,9 @@ export class TMDBService {
         }
 
         try {
-            const response = await axios.get<TMDBTVResponse>(`${this.baseUrl}/tv/${tmdbId}`, {
-                params: { api_key: this.apiKey },
-                timeout: 5000,
-            })
+            const response = await fetch(`${this.baseUrl}/tv/${tmdbId}?api_key=${this.apiKey}`)
 
-            const tv = response.data
+            const tv = await response.json() as TMDBTVResponse
             const firstAirDate = new Date(tv.first_air_date)
             const now = new Date()
             const aired = firstAirDate <= now
@@ -146,7 +140,7 @@ export class TMDBService {
             await this.cache.set(cacheKey, result, this.cacheTTL)
             return result
         } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
+            if (error instanceof Response && error.status === 404) {
                 const result: TMDBValidationResult = {
                     exists: false,
                     released: false,
@@ -183,12 +177,8 @@ export class TMDBService {
             }
 
             // Get season details
-            const response = await axios.get<TMDBSeasonResponse>(`${this.baseUrl}/tv/${tmdbId}/season/${season}`, {
-                params: { api_key: this.apiKey },
-                timeout: 5000,
-            })
-
-            const seasonData = response.data
+            const response = await fetch(`${this.baseUrl}/tv/${tmdbId}/season/${season}?api_key=${this.apiKey}`)
+            const seasonData = await response.json() as TMDBSeasonResponse
             const episodeData = seasonData.episodes.find((ep) => ep.episode_number === episode)
 
             if (!episodeData) {
@@ -233,7 +223,7 @@ export class TMDBService {
             await this.cache.set(cacheKey, result, this.cacheTTL)
             return result
         } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
+            if (error instanceof Response && error.status === 404) {
                 const result: TMDBValidationResult = {
                     exists: false,
                     released: false,
@@ -290,12 +280,10 @@ export class TMDBService {
 
         try {
             const endpoint = type === 'movie' ? 'movie' : 'tv'
-            const response = await axios.get(`${this.baseUrl}/${endpoint}/${tmdbId}/external_ids`, {
-                params: { api_key: this.apiKey },
-                timeout: 5000,
-            })
+            const response = await fetch(`${this.baseUrl}/${endpoint}/${tmdbId}/external_ids?api_key=${this.apiKey}`)
 
-            const imdbId = response.data.imdb_id
+            const data = await response.json() as { imdb_id?: string }
+            const imdbId = data.imdb_id || undefined
             if (imdbId) {
                 await this.cache.set(cacheKey, imdbId, this.cacheTTL)
             }
@@ -317,15 +305,13 @@ export class TMDBService {
         if (cached) return cached
 
         try {
-            const response = await axios.get(`${this.baseUrl}/find/${imdbId}`, {
-                params: {
-                    api_key: this.apiKey,
-                    external_source: 'imdb_id',
-                },
-                timeout: 5000,
-            })
+            const response = await fetch(`${this.baseUrl}/find/${imdbId}?api_key=${this.apiKey}&external_source=imdb_id`)
+            const data = await response.json() as {
+                movie_results: Array<{ id: number }>
+                tv_results: Array<{ id: number }>
+            }
 
-            const results: any[] = type === 'movie' ? response.data.movie_results : response.data.tv_results
+            const results: any[] = type === 'movie' ? data.movie_results : data.tv_results
 
             if (!results || results.length === 0) {
                 await this.cache.set(cacheKey, '', 3600)

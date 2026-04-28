@@ -1,4 +1,3 @@
-import axios, { AxiosResponse } from 'axios'
 import { Readable } from 'stream'
 import { ProxyData } from '../core/types/index.js'
 import { OMSSError } from '../core/errors.js'
@@ -28,17 +27,14 @@ export class ProxyService {
     private streamPatterns: RegExp[]
 
     constructor(streamPatterns?: RegExp[]) {
-        // Default patterns if none provided
-        const defaultPatterns: RegExp[] = [/\\.mp4($|\\?)/, /\\.mkv($|\\?)/, /\\.webm($|\\?)/, /\\.avi($|\\?)/, /\\.mov($|\\?)/]
+        const defaultPatterns: RegExp[] = [/\.mp4($|\?)/, /\.mkv($|\?)/, /\.webm($|\?)/, /\.avi($|\?)/, /\.mov($|\?)/]
 
-        // Ensure default patterns are included when no streamPatterns are provided
         const patterns = streamPatterns ? [...streamPatterns, ...defaultPatterns] : [...defaultPatterns]
 
-        // Compile regex patterns
         this.streamPatterns = patterns
             .map((pattern) => {
                 try {
-                    return new RegExp(pattern, 'i') // case-insensitive
+                    return new RegExp(pattern, 'i')
                 } catch (error) {
                     console.warn(`[ProxyService] Invalid regex pattern: ${pattern}`, error)
                     return null
@@ -57,23 +53,20 @@ export class ProxyService {
         this.isProd ?? console.log(`[ProxyService] Proxying request to: ${proxyData.url}`)
 
         try {
-            // Determine if this should be streamed
             if (this.shouldStream(proxyData.url)) {
                 return await this.handleStreamingRequest(proxyData)
             }
 
-            // Handle buffered request for small files
             return await this.handleBufferedRequest(proxyData)
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                if (error.response) {
-                    throw new OMSSError('INTERNAL_ERROR', `Upstream returned ${error.response.status}`, error.response.status, { url: proxyData.url })
-                }
-
-                throw new OMSSError('INTERNAL_ERROR', `Failed to proxy request: ${error.message}`, 500, { url: proxyData.url })
+            // Preserve external OMSSError behavior that callers see
+            if (error instanceof OMSSError) {
+                throw error
             }
 
-            throw error
+            const message = error instanceof Error ? error.message : 'Unknown error'
+
+            throw new OMSSError('INTERNAL_ERROR', `Failed to proxy request: ${message}`, 500, { url: proxyData.url })
         }
     }
 
@@ -85,99 +78,135 @@ export class ProxyService {
     }
 
     /**
-     * Handle streaming request for large files
+     * Fetch helper with timeout
      */
-    private async handleStreamingRequest(proxyData: ProxyData): Promise<StreamingProxyResponse> {
-        const rangeHeader = proxyData.headers?.['range'] || proxyData.headers?.['Range']
+    private async fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 30000): Promise<Response> {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-        const axiosHeaders = {
-            ...proxyData.headers,
-            'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
-            ...(rangeHeader && { Range: rangeHeader }),
-        }
-
-        const response: AxiosResponse<Readable> = await axios.get(proxyData.url, {
-            headers: axiosHeaders,
-            responseType: 'stream',
-            timeout: 30000,
-            maxRedirects: 5,
-            validateStatus: (status) => status < 500,
-        })
-
-        const contentType = (response.headers['content-type'] as string) || this.getMimeType(proxyData.url)
-
-        // Build headers object
-        const headers: Record<string, string> = {
-            'Content-Disposition': 'inline; filename="stream"',
-            // @ts-ignore
-            'Cache-Control': response.headers['cache-control'] || 'public, max-age=7200',
-            'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length, Content-Range, Last-Modified, ETag',
-            ...(response.headers['accept-ranges'] || response.headers['accept-range']
-                ? {
-                      'Accept-Ranges': response.headers['accept-ranges'] || response.headers['accept-range'] || 'bytes',
-                  }
-                : {}),
-        }
-
-        // Add optional headers if present
-        if (response.headers['content-length']) {
-            // @ts-ignore
-            headers['Content-Length'] = response.headers['content-length']
-        }
-        if (response.headers['content-range']) {
-            headers['Content-Range'] = response.headers['content-range']
-        }
-        if (response.headers['last-modified']) {
-            headers['Last-Modified'] = response.headers['last-modified']
-        }
-        if (response.headers['etag']) {
-            headers['ETag'] = response.headers['etag']
-        }
-
-        return {
-            stream: response.data,
-            contentType,
-            statusCode: response.status,
-            headers,
+        try {
+            const response = await fetch(url, {
+                ...init,
+                signal: controller.signal,
+                redirect: 'follow', // native redirect handling
+            })
+            return response
+        } finally {
+            clearTimeout(timeoutId)
         }
     }
 
     /**
-     * Handle buffered request for small files (original implementation)
+     * Handle streaming request for large files
      */
-    private async handleBufferedRequest(proxyData: ProxyData): Promise<ProxyResponse> {
-        const response: AxiosResponse<Buffer> = await axios.get(proxyData.url, {
-            headers: {
-                ...proxyData.headers,
-                'User-Agent': proxyData.headers?.['User-Agent'] || 'OMSS-Backend/1.0',
-            },
-            responseType: 'arraybuffer',
-            timeout: 30000,
-            maxRedirects: 5,
-            validateStatus: (status) => status < 500,
+    private async handleStreamingRequest(proxyData: ProxyData): Promise<StreamingProxyResponse> {
+        const rangeHeader = proxyData.headers?.['range'] ?? proxyData.headers?.['Range']
+
+        const headers: Record<string, string> = {
+            ...(proxyData.headers ?? {}),
+            'User-Agent': proxyData.headers?.['User-Agent'] ?? 'OMSS-Backend/1.0',
+            ...(rangeHeader ? { Range: rangeHeader } : {}),
+        }
+
+        const response = await this.fetchWithTimeout(proxyData.url, {
+            method: 'GET',
+            headers,
         })
 
-        // Check if we need to rewrite manifest files
-        const contentType = (response.headers['content-type'] as string) || ''
-        let responseData = response.data
+        if (response.status >= 500) {
+            throw new OMSSError('INTERNAL_ERROR', `Upstream returned ${response.status}`, response.status, { url: proxyData.url })
+        }
+
+        if (!response.body) {
+            throw new OMSSError('INTERNAL_ERROR', 'Upstream returned empty body for streaming request', 502, { url: proxyData.url })
+        }
+
+        const nodeStream = Readable.fromWeb(response.body as unknown as ReadableStream<Uint8Array>)
+
+        const contentType = response.headers.get('content-type') ?? this.getMimeType(proxyData.url)
+
+        const headersOut: Record<string, string> = {
+            'Content-Disposition': 'inline; filename="stream"',
+            'Cache-Control': response.headers.get('cache-control') ?? 'public, max-age=7200',
+            'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length, Content-Range, Last-Modified, ETag',
+        }
+
+        const acceptRanges = response.headers.get('accept-ranges') ?? response.headers.get('accept-range')
+        if (acceptRanges) {
+            headersOut['Accept-Ranges'] = acceptRanges || 'bytes'
+        }
+
+        const contentLength = response.headers.get('content-length')
+        if (contentLength) {
+            headersOut['Content-Length'] = contentLength
+        }
+        const contentRange = response.headers.get('content-range')
+        if (contentRange) {
+            headersOut['Content-Range'] = contentRange
+        }
+        const lastModified = response.headers.get('last-modified')
+        if (lastModified) {
+            headersOut['Last-Modified'] = lastModified
+        }
+        const etag = response.headers.get('etag')
+        if (etag) {
+            headersOut['ETag'] = etag
+        }
+
+        return {
+            stream: nodeStream,
+            contentType,
+            statusCode: response.status,
+            headers: headersOut,
+        }
+    }
+
+    /**
+     * Handle buffered request for small files
+     */
+    private async handleBufferedRequest(proxyData: ProxyData): Promise<ProxyResponse> {
+        const response = await this.fetchWithTimeout(proxyData.url, {
+            method: 'GET',
+            headers: {
+                ...(proxyData.headers ?? {}),
+                'User-Agent': proxyData.headers?.['User-Agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.6912.95 Safari/537.36',
+            },
+        })
+
+        if (response.status >= 500) {
+            throw new OMSSError('INTERNAL_ERROR', `Upstream returned ${response.status}`, response.status, { url: proxyData.url })
+        }
+
+        const contentType = response.headers.get('content-type') ?? ''
+
+        let responseData = Buffer.from(await response.arrayBuffer())
 
         if (this.isManifestFile(contentType, proxyData.url)) {
-            const manifestContent = response.data.toString('utf-8')
+            const manifestContent = responseData.toString('utf-8')
             const rewrittenContent = this.rewriteManifest(manifestContent, proxyData.url, proxyData.headers)
             responseData = Buffer.from(rewrittenContent, 'utf-8')
+        }
+
+        const headersOut: Record<string, string> = {
+            'Content-Disposition': 'inline',
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': response.headers.get('cache-control') ?? 'public, max-age=7200',
+        }
+
+        const contentLength = response.headers.get('content-length')
+        if (contentLength) {
+            headersOut['Content-Length'] = contentLength
+        }
+        const contentRange = response.headers.get('content-range')
+        if (contentRange) {
+            headersOut['Content-Range'] = contentRange
         }
 
         return {
             data: responseData,
             contentType: contentType || this.getMimeType(proxyData.url),
             statusCode: response.status,
-            headers: {
-                'Content-Disposition': 'inline',
-                'Accept-Ranges': 'bytes',
-                'Cache-Control': response.headers['cache-control'] || 'public, max-age=7200',
-                ...(response.headers['content-length'] && { 'Content-Length': response.headers['content-length'] }),
-                ...(response.headers['content-range'] && { 'Content-Range': response.headers['content-range'] }),
-            },
+            headers: headersOut,
         }
     }
 
@@ -232,8 +261,6 @@ export class ProxyService {
 
     /**
      * Rewrite manifest file URLs to go through proxy
-     * Handles all URL formats: absolute (http/https), protocol-relative (//), root-relative (/), and relative
-     * Also rewrites URLs in tag attributes like URI="..."
      */
     private rewriteManifest(content: string, baseUrl: string, headers?: Record<string, string>): string {
         const lines = content.split('\n')
@@ -242,28 +269,23 @@ export class ProxyService {
         for (const line of lines) {
             const trimmedLine = line.trim()
 
-            // Handle tag lines with URI attributes (e.g., #EXT-X-KEY)
             if (line.startsWith('#') && this.hasUriAttribute(line)) {
                 rewrittenLines.push(this.rewriteTagAttributes(line, baseUrl, headers))
                 continue
             }
 
-            // Skip other comments and empty lines
             if (line.startsWith('#') || trimmedLine === '') {
                 rewrittenLines.push(line)
                 continue
             }
 
-            // Detect if this line contains a URL
             if (this.isUrlLine(trimmedLine)) {
                 const resolvedUrl = this.resolveUrl(baseUrl, trimmedLine)
                 const proxiedUrl = this.createProxyUrl(resolvedUrl, headers)
 
-                // Preserve original indentation
-                const indent = line.match(/^\s*/)?.[0] || ''
+                const indent = line.match(/^\s*/)?.[0] ?? ''
                 rewrittenLines.push(indent + proxiedUrl)
             } else {
-                // Not a URL line, keep as-is
                 rewrittenLines.push(line)
             }
         }
@@ -271,52 +293,33 @@ export class ProxyService {
         return rewrittenLines.join('\n')
     }
 
-    /**
-     * Check if a tag line has URI attributes that need rewriting
-     */
     private hasUriAttribute(line: string): boolean {
         return /URI\s*=\s*["']([^"']+)["']/i.test(line)
     }
 
-    /**
-     * Rewrite URI attributes in HLS tags
-     * Examples:
-     *   #EXT-X-KEY:METHOD=AES-128,URI="/storage/enc.key",IV=...
-     *   #EXT-X-MAP:URI="init.mp4",BYTERANGE="..."
-     */
     private rewriteTagAttributes(line: string, baseUrl: string, headers?: Record<string, string>): string {
-        // Match URI="..." or URI='...'
         return line.replace(/URI\s*=\s*["']([^"']+)["']/gi, (match, capturedUrl) => {
             const resolvedUrl = this.resolveUrl(baseUrl, capturedUrl)
             const proxiedUrl = this.createProxyUrl(resolvedUrl, headers)
 
-            // Preserve the quote style from the original
             const quote = match.includes('"') ? '"' : "'"
             return `URI=${quote}${proxiedUrl}${quote}`
         })
     }
 
-    /**
-     * Check if a line contains a URL
-     */
     private isUrlLine(line: string): boolean {
-        // Absolute URLs
         if (line.startsWith('http://') || line.startsWith('https://')) {
             return true
         }
 
-        // Protocol-relative URLs
         if (line.startsWith('//')) {
             return true
         }
 
-        // Root-relative URLs
         if (line.startsWith('/')) {
             return true
         }
 
-        // Relative URLs (files with extensions or paths)
-        // Common patterns: segment.ts, playlist.m3u8, path/to/file.mp4
         return (
             line.includes('.ts') ||
             line.includes('.m3u8') ||
@@ -330,41 +333,32 @@ export class ProxyService {
         )
     }
 
-    /**
-     * Resolve a URL against a base URL
-     * Handles: absolute, protocol-relative, root-relative, and relative URLs
-     */
     private resolveUrl(baseUrl: string, targetUrl: string): string {
         try {
-            // Absolute URL (http:// or https://)
             if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                 return targetUrl
             }
 
             const baseUrlObj = new URL(baseUrl)
 
-            // Protocol-relative URL (//example.com/path)
             if (targetUrl.startsWith('//')) {
                 return `${baseUrlObj.protocol}${targetUrl}`
             }
 
-            // Root-relative URL (/path/to/file)
             if (targetUrl.startsWith('/')) {
                 return `${baseUrlObj.protocol}//${baseUrlObj.host}${targetUrl}`
             }
 
-            // Relative URL (path/to/file or file.ts)
-            // Resolve against the base URL's directory
             const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
             return new URL(targetUrl, baseDir).toString()
         } catch (error) {
             this.isProd ?? console.warn(`[ProxyService] Failed to resolve URL: ${targetUrl} against ${baseUrl}`)
-            // Fallback: try to construct a valid URL
+
             try {
                 const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
                 return baseDir + targetUrl
             } catch {
-                return targetUrl // Last resort: return as-is
+                return targetUrl
             }
         }
     }
