@@ -15,7 +15,7 @@ import { requestLogger } from '../middleware/logger.js'
 import { validateContentType } from '../middleware/validation.js'
 import { TMDBService } from '../services/tmdb.service.js'
 import { StremioController } from '../controllers/stremio.controller.js'
-import { MCPController } from 'src/controllers/mcp.controller.js'
+import { MCPController } from '../controllers/mcp.controller.js'
 
 export class OMSSServer {
     private app: FastifyInstance
